@@ -5,6 +5,7 @@ import 'core/theme/theme.dart';
 import 'src/auth/auth.dart';
 import 'src/medical_history/presentation/screens/medical_history_screen.dart';
 import 'src/medical_history/presentation/screens/clinical_history_screen.dart';
+import 'src/settings/presentation/settings_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -60,6 +61,8 @@ class MyApp extends StatelessWidget {
         routes: {
           '/register': (context) => const RegisterScreen(),
           '/medical-history': (context) => const MedicalHistoryScreen(),
+          '/settings': (context) => const SettingsScreen(),
+
         },
         onGenerateRoute: (settings) {
           if (settings.name == '/clinical-history') {

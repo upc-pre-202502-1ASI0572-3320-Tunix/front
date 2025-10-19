@@ -133,6 +133,14 @@ class _AppSidebarState extends State<AppSidebar> {
                 ],
               ),
             ),
+            _buildMenuItem(
+              context,
+              icon: Icons.settings_outlined,
+              label: 'Configuración',
+              onTap: () {
+                Navigator.of(context).pushNamed('/settings');
+              },
+            ),
             
             // Botón de cerrar sesión
             _buildLogoutButton(context),
@@ -281,6 +289,7 @@ class _AppSidebarState extends State<AppSidebar> {
                           ),
                         ),
                       ],
+                      
                     ],
                   )
                 : const Center(
