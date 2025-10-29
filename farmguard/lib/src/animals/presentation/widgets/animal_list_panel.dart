@@ -98,7 +98,9 @@ class _AnimalListPanelState extends State<AnimalListPanel> {
                   onTap: () {
                     showDialog(
                       context: context,
-                      builder: (context) => const AddAnimalDialog(),
+                      builder: (dialogContext) => AddAnimalDialog(
+                        animalBloc: context.read<AnimalBloc>(),
+                      ),
                     );
                   },
                   borderRadius: BorderRadius.circular(8),
@@ -182,7 +184,7 @@ class _AnimalListPanelState extends State<AnimalListPanel> {
               // Filtro por especie
               Expanded(
                 child: DropdownButtonFormField<String>(
-                  value: _selectedSpecie,
+                  initialValue: _selectedSpecie,
                   hint: Text(
                     'Filtrar por especie',
                     style: AppTextStyles.bodyMedium.copyWith(

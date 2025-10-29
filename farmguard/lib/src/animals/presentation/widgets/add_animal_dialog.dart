@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'dart:html' as html;
 import 'dart:typed_data';
 import '../../../../core/config/app_config.dart';
+import '../../../../core/storage/token_storage.dart';
 import '../../../shared/widgets/custom_snackbar.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../auth/presentation/bloc/auth_state.dart';
@@ -12,7 +13,12 @@ import '../bloc/animal_bloc.dart';
 import '../bloc/animal_event.dart';
 
 class AddAnimalDialog extends StatefulWidget {
-  const AddAnimalDialog({super.key});
+  final AnimalBloc animalBloc;
+  
+  const AddAnimalDialog({
+    super.key,
+    required this.animalBloc,
+  });
 
   @override
   State<AddAnimalDialog> createState() => _AddAnimalDialogState();
@@ -110,12 +116,18 @@ class _AddAnimalDialogState extends State<AddAnimalDialog> {
       final authState = context.read<AuthBloc>().state;
       final inventoryId = authState is Authenticated ? authState.user.inventoryId : 1;
       
+      // Obtener el token
+      final token = await TokenStorage.getToken();
+      
       // Crear multipart request
       final uri = Uri.parse('${AppConfig.baseUrl}/animals/$inventoryId');
       final request = http.MultipartRequest('POST', uri);
       
       // Agregar headers
       request.headers['Content-Type'] = 'multipart/form-data';
+      if (token != null) {
+        request.headers['Authorization'] = 'Bearer $token';
+      }
       
       // Agregar campos de texto
       request.fields['name'] = _nameController.text;
@@ -147,18 +159,28 @@ class _AddAnimalDialogState extends State<AddAnimalDialog> {
       final streamedResponse = await request.send();
       final response = await http.Response.fromStream(streamedResponse);
       
+      print('DEBUG: Response status code: ${response.statusCode}');
+      print('DEBUG: Response body: ${response.body}');
+      
       if (response.statusCode >= 200 && response.statusCode < 300) {
         if (mounted) {
           Navigator.of(context).pop();
           CustomSnackbar.showSuccess(context, 'Animal agregado correctamente');
           
-          // Recargar lista de animales
-          context.read<AnimalBloc>().add(LoadAnimals(inventoryId));
+          // Recargar lista de animales usando el bloc recibido como parámetro
+          widget.animalBloc.add(LoadAnimals(inventoryId));
         }
       } else {
-        throw Exception('Error al crear el animal: ${response.body}');
+        // Mostrar el error específico del backend
+        if (mounted) {
+          CustomSnackbar.showError(
+            context,
+            'Error (${response.statusCode}): ${response.body}',
+          );
+        }
       }
     } catch (e) {
+      print('DEBUG: Exception caught: $e');
       if (mounted) {
         CustomSnackbar.showError(
           context,
@@ -216,7 +238,7 @@ class _AddAnimalDialogState extends State<AddAnimalDialog> {
                 
                 // Especie
                 DropdownButtonFormField<int>(
-                  value: _selectedSpecie,
+                  initialValue: _selectedSpecie,
                   decoration: InputDecoration(
                     labelText: 'Especie *',
                     border: OutlineInputBorder(
@@ -267,7 +289,7 @@ class _AddAnimalDialogState extends State<AddAnimalDialog> {
                 
                 // Sexo
                 DropdownButtonFormField<bool>(
-                  value: _sex,
+                  initialValue: _sex,
                   decoration: InputDecoration(
                     labelText: 'Sexo *',
                     border: OutlineInputBorder(

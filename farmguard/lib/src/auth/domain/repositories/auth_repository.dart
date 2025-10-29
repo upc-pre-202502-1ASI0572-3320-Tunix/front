@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import '../../../../core/utils/either.dart';
 import '../../../../core/errors/failures.dart';
 import '../entities/user.dart';
@@ -18,7 +19,8 @@ abstract class AuthRepository {
     required String firstName,
     required String lastName,
     required String email,
-    String? urlPhoto,
+    Uint8List? photoBytes,
+    String? photoFileName,
   });
 
   /// Cerrar sesión
