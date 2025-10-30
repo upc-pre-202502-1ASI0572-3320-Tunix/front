@@ -19,7 +19,7 @@ class _MedicalHistoryListPanelState extends State<MedicalHistoryListPanel> {
 
   @override
   void dispose() {
-    _searchController.dispose();
+    _searchController.dispose();  
     super.dispose();
   }
 
