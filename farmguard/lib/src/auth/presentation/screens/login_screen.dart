@@ -140,7 +140,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                     colors: [
-                      AppColors.primary.withOpacity(0.3),
+                        AppColors.primary.withValues(alpha: 0.3),
                       Colors.black87,
                       Colors.black,
                     ],
@@ -153,7 +153,7 @@ class _LoginScreenState extends State<LoginScreen> {
         // Overlay oscuro para contraste
         Positioned.fill(
           child: Container(
-            color: Colors.black.withOpacity(0.5),
+              color: Colors.black.withValues(alpha: 0.5),
           ),
         ),
         // Contenido
@@ -230,7 +230,7 @@ class _LoginScreenState extends State<LoginScreen> {
           constraints: const BoxConstraints(maxWidth: 480),
           child: Card(
             elevation: 12,
-            shadowColor: Colors.black.withOpacity(0.3),
+            shadowColor: Colors.black.withValues(alpha: 0.3),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(AppDimensions.radiusLarge),
             ),

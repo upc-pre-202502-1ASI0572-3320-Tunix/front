@@ -39,9 +39,6 @@ class VaccineRemoteDataSourceImpl implements VaccineRemoteDataSource {
         },
       );
 
-      print('DEBUG createVaccine - Status Code: ${response.statusCode}');
-      print('DEBUG createVaccine - Response Data: ${response.data}');
-
       if (response.statusCode == 200 || response.statusCode == 201) {
         // Agregar medicalHistoryId a la respuesta si no viene
         final vaccineData = response.data as Map<String, dynamic>;
@@ -54,7 +51,6 @@ class VaccineRemoteDataSourceImpl implements VaccineRemoteDataSource {
         throw Exception('Failed to create vaccine - Status: ${response.statusCode}');
       }
     } catch (e) {
-      print('DEBUG createVaccine - Error: $e');
       rethrow;
     }
   }
@@ -65,14 +61,11 @@ class VaccineRemoteDataSourceImpl implements VaccineRemoteDataSource {
       final response = await apiClient.delete(
         ApiConstants.deleteVaccine(vaccineId),
       );
-
-      print('DEBUG deleteVaccine - Status Code: ${response.statusCode}');
       
       if (response.statusCode != 200 && response.statusCode != 204) {
         throw Exception('Failed to delete vaccine - Status: ${response.statusCode}');
       }
     } catch (e) {
-      print('DEBUG deleteVaccine - Error: $e');
       rethrow;
     }
   }

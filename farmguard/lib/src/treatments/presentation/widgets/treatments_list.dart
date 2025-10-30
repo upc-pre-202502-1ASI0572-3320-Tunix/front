@@ -94,7 +94,7 @@ class TreatmentsList extends StatelessWidget {
         Container(
           margin: const EdgeInsets.all(AppDimensions.marginLarge),
           decoration: BoxDecoration(
-            color: AppColors.primary.withOpacity(0.1),
+            color: AppColors.primary.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(AppDimensions.radiusMedium),
             border: Border.all(
               color: AppColors.primary,

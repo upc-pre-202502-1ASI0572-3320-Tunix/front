@@ -41,7 +41,6 @@ class ClinicalHistoryScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    print('DEBUG ClinicalHistoryScreen: animalId type: ${animalId.runtimeType}, value: $animalId');
     return BlocProvider(
       create: (context) {
         final bloc = MedicalHistoryBloc(
@@ -55,7 +54,6 @@ class ClinicalHistoryScreen extends StatelessWidget {
         );
         
         // Cargar historial médico automáticamente
-        print('DEBUG: Calling LoadMedicalHistory with animalId: $animalId');
         bloc.add(LoadMedicalHistory(animalId));
         
         return bloc;
@@ -136,7 +134,7 @@ class ClinicalHistoryView extends StatelessWidget {
                             color: Colors.white,
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withOpacity(0.05),
+                                  color: Colors.black.withValues(alpha: 0.05),
                                 blurRadius: 8,
                                 offset: const Offset(0, 2),
                               ),
@@ -164,7 +162,7 @@ class ClinicalHistoryView extends StatelessWidget {
                                   vertical: 8,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: AppColors.primary.withOpacity(0.1),
+                                    color: AppColors.primary.withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(20),
                                   border: Border.all(
                                     color: AppColors.primary,

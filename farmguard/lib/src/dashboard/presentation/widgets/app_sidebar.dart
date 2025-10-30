@@ -81,7 +81,7 @@ class _AppSidebarState extends State<AppSidebar> {
           color: const Color(0xFF1B5E20), // Verde oscuro
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.15),
+              color: Colors.black.withValues(alpha: 0.15),
               blurRadius: 15,
               offset: const Offset(2, 0),
             ),
@@ -198,9 +198,9 @@ class _AppSidebarState extends State<AppSidebar> {
     return Padding(
       padding: const EdgeInsets.only(bottom: AppDimensions.marginSmall),
       child: Material(
-        color: isSelected 
-            ? Colors.white.withOpacity(0.15) 
-            : Colors.transparent,
+    color: isSelected 
+      ? Colors.white.withValues(alpha: 0.15) 
+      : Colors.transparent,
         borderRadius: BorderRadius.circular(AppDimensions.radiusMedium),
         child: InkWell(
           onTap: onTap,
@@ -249,7 +249,7 @@ class _AppSidebarState extends State<AppSidebar> {
     return Padding(
       padding: const EdgeInsets.only(bottom: AppDimensions.marginSmall),
       child: Material(
-        color: Colors.white.withOpacity(0.15),
+  color: Colors.white.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(AppDimensions.radiusMedium),
         child: InkWell(
           onTap: () => _showLogoutDialog(context),

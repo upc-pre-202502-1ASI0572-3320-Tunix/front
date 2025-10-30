@@ -46,7 +46,7 @@ class AnimalDetailPanel extends StatelessWidget {
                     decoration: BoxDecoration(
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.2),
+                          color: Colors.black.withValues(alpha: 0.2),
                           blurRadius: 10,
                           offset: const Offset(0, 4),
                         ),
@@ -57,7 +57,7 @@ class AnimalDetailPanel extends StatelessWidget {
                       fit: BoxFit.cover,
                       errorBuilder: (context, error, stackTrace) {
                         return Container(
-                          color: AppColors.primary.withOpacity(0.1),
+                          color: AppColors.primary.withValues(alpha: 0.1),
                           child: Icon(
                             Icons.pets,
                             size: 100,
@@ -95,7 +95,7 @@ class AnimalDetailPanel extends StatelessWidget {
                         end: Alignment.bottomCenter,
                         colors: [
                           Colors.transparent,
-                          Colors.black.withOpacity(0.7),
+                          Colors.black.withValues(alpha: 0.7),
                         ],
                       ),
                     ),
@@ -119,7 +119,7 @@ class AnimalDetailPanel extends StatelessWidget {
                             fontSize: 28,
                             shadows: [
                               Shadow(
-                                color: Colors.black.withOpacity(0.5),
+                                color: Colors.black.withValues(alpha: 0.5),
                                 blurRadius: 4,
                                 offset: const Offset(0, 2),
                               ),
@@ -130,11 +130,11 @@ class AnimalDetailPanel extends StatelessWidget {
                         Text(
                           animal.idAnimal,
                           style: AppTextStyles.bodySmall.copyWith(
-                            color: Colors.white.withOpacity(0.8),
+                            color: Colors.white.withValues(alpha: 0.8),
                             fontFamily: 'monospace',
                             shadows: [
                               Shadow(
-                                color: Colors.black.withOpacity(0.5),
+                                color: Colors.black.withValues(alpha: 0.5),
                                 blurRadius: 4,
                                 offset: const Offset(0, 2),
                               ),
@@ -216,7 +216,7 @@ class AnimalDetailPanel extends StatelessWidget {
                   // Botón Historial Médico
                   SizedBox(
                     width: double.infinity,
-                    child: ElevatedButton.icon(
+                    child: ElevatedButton(
                       onPressed: () {
                         Navigator.pushNamed(
                           context,
@@ -224,7 +224,6 @@ class AnimalDetailPanel extends StatelessWidget {
                           arguments: animal.id,
                         );
                       },
-                      label: const Text('Ver Historial Médico'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primary,
                         foregroundColor: Colors.white,
@@ -233,6 +232,7 @@ class AnimalDetailPanel extends StatelessWidget {
                           borderRadius: BorderRadius.circular(AppDimensions.radiusMedium),
                         ),
                       ),
+                      child: const Text('Ver Historial Médico'),
                     ),
                   ),
                   const SizedBox(height: AppDimensions.marginMedium),
@@ -242,12 +242,10 @@ class AnimalDetailPanel extends StatelessWidget {
                     children: [
                       // Botón Editar
                       Expanded(
-                        child: OutlinedButton.icon(
+                        child: OutlinedButton(
                           onPressed: () {
-                            // TODO: Implementar edición de animal
+                            // Implementar edición de animal
                           },
-                          icon: const Icon(Icons.edit, size: 20),
-                          label: const Text('Editar'),
                           style: OutlinedButton.styleFrom(
                             foregroundColor: AppColors.primary,
                             side: BorderSide(color: AppColors.primary, width: 2),
@@ -256,15 +254,21 @@ class AnimalDetailPanel extends StatelessWidget {
                               borderRadius: BorderRadius.circular(AppDimensions.radiusMedium),
                             ),
                           ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: const [
+                              Icon(Icons.edit, size: 20),
+                              SizedBox(width: 8),
+                              Text('Editar'),
+                            ],
+                          ),
                         ),
                       ),
                       const SizedBox(width: AppDimensions.marginMedium),
                       // Botón Eliminar
                       Expanded(
-                        child: ElevatedButton.icon(
+                        child: ElevatedButton(
                           onPressed: () => _showDeleteConfirmation(context),
-                          icon: const Icon(Icons.delete, size: 20),
-                          label: const Text('Eliminar'),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColors.error,
                             foregroundColor: Colors.white,
@@ -272,6 +276,14 @@ class AnimalDetailPanel extends StatelessWidget {
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(AppDimensions.radiusMedium),
                             ),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: const [
+                              Icon(Icons.delete, size: 20),
+                              SizedBox(width: 8),
+                              Text('Eliminar'),
+                            ],
                           ),
                         ),
                       ),
@@ -536,15 +548,15 @@ class _VitalSignCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(AppDimensions.paddingMedium + 4),
       decoration: BoxDecoration(
-        color: healthColor.withOpacity(0.08),
+        color: healthColor.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: healthColor.withOpacity(0.3),
+          color: healthColor.withValues(alpha: 0.3),
           width: 2,
         ),
         boxShadow: [
           BoxShadow(
-            color: healthColor.withOpacity(0.1),
+            color: healthColor.withValues(alpha: 0.1),
             blurRadius: 8,
             offset: const Offset(0, 4),
           ),
@@ -596,7 +608,7 @@ class _VitalSignCard extends StatelessWidget {
                         Text(
                           unit,
                           style: AppTextStyles.bodyMedium.copyWith(
-                            color: healthColor.withOpacity(0.7),
+                            color: healthColor.withValues(alpha: 0.7),
                           ),
                         ),
                       ],
@@ -610,7 +622,7 @@ class _VitalSignCard extends StatelessWidget {
                   vertical: 6,
                 ),
                 decoration: BoxDecoration(
-                  color: healthColor.withOpacity(0.2),
+                  color: healthColor.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(

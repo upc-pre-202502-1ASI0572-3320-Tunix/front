@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:http/http.dart' as http;
 import 'dart:html' as html;
-import 'dart:typed_data';
 import '../../../../core/config/app_config.dart';
 import '../../../../core/storage/token_storage.dart';
 import '../../../shared/widgets/custom_snackbar.dart';
@@ -159,9 +158,6 @@ class _AddAnimalDialogState extends State<AddAnimalDialog> {
       final streamedResponse = await request.send();
       final response = await http.Response.fromStream(streamedResponse);
       
-      print('DEBUG: Response status code: ${response.statusCode}');
-      print('DEBUG: Response body: ${response.body}');
-      
       if (response.statusCode >= 200 && response.statusCode < 300) {
         if (mounted) {
           Navigator.of(context).pop();
@@ -180,7 +176,6 @@ class _AddAnimalDialogState extends State<AddAnimalDialog> {
         }
       }
     } catch (e) {
-      print('DEBUG: Exception caught: $e');
       if (mounted) {
         CustomSnackbar.showError(
           context,

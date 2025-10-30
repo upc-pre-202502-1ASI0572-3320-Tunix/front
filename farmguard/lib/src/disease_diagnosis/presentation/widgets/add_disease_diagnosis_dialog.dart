@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/theme/theme.dart';
 import '../../domain/entities/disease_diagnosis.dart';
@@ -120,7 +119,7 @@ class _AddDiseaseDiagnosisDialogState extends State<AddDiseaseDiagnosisDialog> {
                   
                   // Severidad Dropdown
                   DropdownButtonFormField<Severity>(
-                    value: _selectedSeverity,
+                    initialValue: _selectedSeverity,
                     decoration: InputDecoration(
                       labelText: 'Severidad',
                       border: OutlineInputBorder(
@@ -144,7 +143,6 @@ class _AddDiseaseDiagnosisDialogState extends State<AddDiseaseDiagnosisDialog> {
                           severityColor = AppColors.error;
                           break;
                       }
-                      
                       return DropdownMenuItem<Severity>(
                         value: severity,
                         child: Row(

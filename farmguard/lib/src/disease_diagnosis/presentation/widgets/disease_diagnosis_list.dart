@@ -81,7 +81,7 @@ class DiseaseDiagnosisList extends StatelessWidget {
             Container(
               margin: const EdgeInsets.all(AppDimensions.marginLarge),
               decoration: BoxDecoration(
-            color: AppColors.primary.withOpacity(0.1),
+            color: AppColors.primary.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(AppDimensions.radiusMedium),
             border: Border.all(
               color: AppColors.primary,
@@ -163,7 +163,7 @@ class DiseaseDiagnosisList extends StatelessWidget {
           Icon(
             Icons.health_and_safety,
             size: 64,
-            color: AppColors.primary.withOpacity(0.3),
+            color: AppColors.primary.withValues(alpha: 0.3),
           ),
           const SizedBox(height: AppDimensions.marginMedium),
           Text(
