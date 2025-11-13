@@ -1,3 +1,4 @@
+import 'package:farmguard/src/settings/presentation/settings_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'core/network/api_client.dart';
@@ -60,6 +61,8 @@ class MyApp extends StatelessWidget {
         routes: {
           '/register': (context) => const RegisterScreen(),
           '/medical-history': (context) => const MedicalHistoryScreen(),
+          '/settings': (context) => const SettingsScreen(),
+
         },
         onGenerateRoute: (settings) {
           if (settings.name == '/clinical-history') {
