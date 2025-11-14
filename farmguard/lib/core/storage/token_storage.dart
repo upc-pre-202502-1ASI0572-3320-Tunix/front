@@ -34,6 +34,17 @@ class TokenStorage {
     }
   }
 
+  static Future<String?> getProfileId() async { 
+    if (kIsWeb) { 
+      final prefs = await SharedPreferences.getInstance(); 
+      return prefs.getString(StorageConstants.userId); 
+      } else { 
+        return await _secureStorage.read(key: StorageConstants.userId); 
+        } 
+  }
+  
+  
+
   // Guardar refresh token
   static Future<void> saveRefreshToken(String token) async {
     if (kIsWeb) {
