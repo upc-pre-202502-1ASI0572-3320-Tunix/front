@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'package:equatable/equatable.dart';
 
 /// Eventos del Auth BLoC
@@ -29,7 +30,8 @@ class SignUpRequested extends AuthEvent {
   final String firstName;
   final String lastName;
   final String email;
-  final String? urlPhoto;
+  final Uint8List? photoBytes;
+  final String? photoFileName;
 
   const SignUpRequested({
     required this.username,
@@ -37,7 +39,8 @@ class SignUpRequested extends AuthEvent {
     required this.firstName,
     required this.lastName,
     required this.email,
-    this.urlPhoto,
+    this.photoBytes,
+    this.photoFileName,
   });
 
   @override
@@ -47,7 +50,8 @@ class SignUpRequested extends AuthEvent {
         firstName,
         lastName,
         email,
-        urlPhoto,
+        photoBytes,
+        photoFileName,
       ];
 }
 

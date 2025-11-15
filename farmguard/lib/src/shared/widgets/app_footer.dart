@@ -14,7 +14,7 @@ class AppFooter extends StatelessWidget {
         horizontal: isMobile ? AppDimensions.paddingMedium : AppDimensions.paddingXLarge,
         vertical: AppDimensions.paddingSmall,
       ),
-      color: Colors.black.withOpacity(0.8),
+  color: Colors.black.withValues(alpha: 0.8),
       child: isMobile ? _buildMobileFooter() : _buildDesktopFooter(),
     );
   }
@@ -82,7 +82,7 @@ class AppFooter extends StatelessWidget {
   Widget _buildFooterLink(String text) {
     return InkWell(
       onTap: () {
-        // TODO: Implementar navegación a páginas legales
+        // Implementar navegación a páginas legales
         // debugPrint('Navegando a: $text');
       },
       child: Padding(

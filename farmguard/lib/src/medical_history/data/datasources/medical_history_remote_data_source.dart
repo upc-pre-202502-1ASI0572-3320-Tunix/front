@@ -12,7 +12,6 @@ class MedicalHistoryRemoteDataSourceImpl implements MedicalHistoryRemoteDataSour
 
   @override
   Future<MedicalHistoryModel> getMedicalHistoryByAnimal(int animalId) async {
-    print('DEBUG: animalId type: ${animalId.runtimeType}, value: $animalId');
     final response = await apiClient.get('/medicalhistory/by-animal/$animalId');
     
     if (response.statusCode == 200) {

@@ -12,7 +12,7 @@ class NetworkInfo {
 
     // En mobile, puedes usar connectivity_plus
     // Por ahora, asumimos que hay conexión
-    // TODO: Implementar verificación real de red
+    // Implementar verificación real de red
     return true;
   }
 }

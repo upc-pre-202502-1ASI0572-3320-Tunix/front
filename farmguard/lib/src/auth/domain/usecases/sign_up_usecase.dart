@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import '../../../../core/utils/either.dart';
 import '../../../../core/errors/failures.dart';
 import '../repositories/auth_repository.dart';
@@ -14,7 +15,8 @@ class SignUpUseCase {
     required String firstName,
     required String lastName,
     required String email,
-    String? urlPhoto,
+    Uint8List? photoBytes,
+    String? photoFileName,
   }) async {
     // Validaciones de negocio
     if (username.isEmpty) {
@@ -73,7 +75,8 @@ class SignUpUseCase {
       firstName: firstName,
       lastName: lastName,
       email: email,
-      urlPhoto: urlPhoto,
+      photoBytes: photoBytes,
+      photoFileName: photoFileName,
     );
   }
 }

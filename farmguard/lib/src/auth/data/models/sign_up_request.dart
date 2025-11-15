@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 /// Request para Sign Up
 class SignUpRequest {
   final String username;
@@ -5,7 +7,8 @@ class SignUpRequest {
   final String firstName;
   final String lastName;
   final String email;
-  final String? urlPhoto;
+  final Uint8List? photoBytes;
+  final String? photoFileName;
 
   SignUpRequest({
     required this.username,
@@ -13,7 +16,8 @@ class SignUpRequest {
     required this.firstName,
     required this.lastName,
     required this.email,
-    this.urlPhoto,
+    this.photoBytes,
+    this.photoFileName,
   });
 
   Map<String, dynamic> toJson() {
@@ -23,7 +27,6 @@ class SignUpRequest {
       'firstName': firstName,
       'lastName': lastName,
       'email': email,
-      'urlPhoto': urlPhoto ?? '',
     };
   }
 }
