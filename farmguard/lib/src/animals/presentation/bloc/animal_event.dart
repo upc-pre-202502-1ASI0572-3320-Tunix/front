@@ -34,3 +34,37 @@ class FilterAnimals extends AnimalEvent {
   @override
   List<Object?> get props => [searchQuery, specieFilter];
 }
+
+/// Evento para iniciar sincronización IoT de un animal
+class StartIotSync extends AnimalEvent {
+  final int animalId;
+  final String iotUrl;
+
+  const StartIotSync({required this.animalId, required this.iotUrl});
+
+  @override
+  List<Object?> get props => [animalId, iotUrl];
+}
+
+/// Evento para detener sincronización IoT
+class StopIotSync extends AnimalEvent {
+  const StopIotSync();
+}
+
+/// Evento para actualizar datos IoT de un animal
+class UpdateAnimalIotData extends AnimalEvent {
+  final int animalId;
+  final int heartRate;
+  final double temperature;
+  final String location;
+
+  const UpdateAnimalIotData({
+    required this.animalId,
+    required this.heartRate,
+    required this.temperature,
+    required this.location,
+  });
+
+  @override
+  List<Object?> get props => [animalId, heartRate, temperature, location];
+}

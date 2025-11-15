@@ -4,7 +4,7 @@ class AppConfig {
     // Usar siempre la URL directa para desarrollo
     return const String.fromEnvironment(
       'API_BASE_URL',
-      defaultValue: 'http://136.113.178.153/api',
+      defaultValue: 'http://localhost:5000/api',
     );
     
     // NOTA: Para producción web con proxy reverso, cambiar a:
