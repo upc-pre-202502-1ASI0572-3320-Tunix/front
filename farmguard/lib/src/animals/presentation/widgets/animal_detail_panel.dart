@@ -10,7 +10,7 @@ import '../../domain/entities/animal.dart';
 import '../bloc/animal_bloc.dart';
 import '../bloc/animal_event.dart';
 
-class AnimalDetailPanel extends StatelessWidget {
+class AnimalDetailPanel extends StatefulWidget {
   final Animal animal;
 
   const AnimalDetailPanel({
@@ -18,12 +18,50 @@ class AnimalDetailPanel extends StatelessWidget {
     required this.animal,
   });
 
+  @override
+  State<AnimalDetailPanel> createState() => _AnimalDetailPanelState();
+}
+
+class _AnimalDetailPanelState extends State<AnimalDetailPanel> {
+  @override
+  void initState() {
+    super.initState();
+    // Iniciar sincronización IoT cuando se carga el panel
+    _startIotSync();
+  }
+
+  @override
+  void didUpdateWidget(AnimalDetailPanel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Si cambia el animal, reiniciar sincronización
+    if (oldWidget.animal.id != widget.animal.id) {
+      _startIotSync();
+    }
+  }
+
+  @override
+  void dispose() {
+    // Detener sincronización al salir
+    context.read<AnimalBloc>().add(const StopIotSync());
+    super.dispose();
+  }
+
+  void _startIotSync() {
+    // Iniciar sincronización IoT con la URL del animal
+    context.read<AnimalBloc>().add(
+          StartIotSync(
+            animalId: widget.animal.id,
+            iotUrl: widget.animal.urlIot,
+          ),
+        );
+  }
+
   // URL temporal de prueba mientras se arregla CORS en Firebase
   String _getImageUrl() {
-    if (animal.urlPhoto.contains('firebasestorage.googleapis.com')) {
+    if (widget.animal.urlPhoto.contains('firebasestorage.googleapis.com')) {
       return 'https://media.istockphoto.com/id/877742362/es/foto/retrato-de-vaca-de-gran-angular-alpes-de-tirol-del-sur-sattel-staller.jpg?s=612x612&w=0&k=20&c=jjxcNIqv-KSomavNcWj6z1P9BZBl_AnuUJDt74omqZE=';
     }
-    return animal.urlPhoto;
+    return widget.animal.urlPhoto;
   }
 
   @override
@@ -39,7 +77,7 @@ class AnimalDetailPanel extends StatelessWidget {
               children: [
                 // Imagen principal
                 Hero(
-                  tag: 'animal_${animal.id}',
+                  tag: 'animal_${widget.animal.id}',
                   child: Container(
                     width: double.infinity,
                     height: 250,
@@ -53,7 +91,7 @@ class AnimalDetailPanel extends StatelessWidget {
                       ],
                     ),
                     child: Image.network(
-                      _getImageUrl(),
+                      widget.animal.urlPhoto,
                       fit: BoxFit.cover,
                       errorBuilder: (context, error, stackTrace) {
                         return Container(
@@ -112,7 +150,7 @@ class AnimalDetailPanel extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          animal.name,
+                          widget.animal.name,
                           style: AppTextStyles.h2.copyWith(
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
@@ -128,7 +166,7 @@ class AnimalDetailPanel extends StatelessWidget {
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          animal.idAnimal,
+                          widget.animal.idAnimal,
                           style: AppTextStyles.bodySmall.copyWith(
                             color: Colors.white.withValues(alpha: 0.8),
                             fontFamily: 'monospace',
@@ -159,19 +197,19 @@ class AnimalDetailPanel extends StatelessWidget {
                   const SizedBox(height: AppDimensions.marginSmall),
                   _InfoRowNoIcon(
                     label: 'Especie',
-                    value: animal.specie,
+                    value: widget.animal.specie,
                   ),
                   _InfoRowNoIcon(
                     label: 'Sexo',
-                    value: animal.sexText,
+                    value: widget.animal.sexText,
                   ),
                   _InfoRowNoIcon(
                     label: 'Fecha de Nacimiento',
-                    value: DateFormat('dd/MM/yyyy').format(animal.birthDate),
+                    value: DateFormat('dd/MM/yyyy').format(widget.animal.birthDate),
                   ),
                   _InfoRowNoIcon(
                     label: 'Edad',
-                    value: '${animal.ageInYears} ${animal.ageInYears == 1 ? "año" : "años"}',
+                    value: '${widget.animal.ageInYears} ${widget.animal.ageInYears == 1 ? "año" : "años"}',
                   ),
                   const SizedBox(height: AppDimensions.marginMedium),
 
@@ -181,7 +219,7 @@ class AnimalDetailPanel extends StatelessWidget {
                   _VitalSignCard(
                     icon: Icons.favorite,
                     label: 'Frecuencia Cardíaca',
-                    value: '${animal.hearRate}',
+                    value: '${widget.animal.hearRate}',
                     unit: 'bpm',
                     color: Colors.red,
                   ),
@@ -189,7 +227,7 @@ class AnimalDetailPanel extends StatelessWidget {
                   _VitalSignCard(
                     icon: Icons.thermostat,
                     label: 'Temperatura',
-                    value: '${animal.temperature}',
+                    value: '${widget.animal.temperature}',
                     unit: '°C',
                     color: Colors.orange,
                   ),
@@ -201,12 +239,12 @@ class AnimalDetailPanel extends StatelessWidget {
                   _InfoRowCentered(
                     icon: Icons.location_on,
                     label: 'Coordenadas',
-                    value: animal.location,
+                    value: widget.animal.location,
                   ),
                   _InfoRowCentered(
                     icon: Icons.router,
                     label: 'URL IoT', 
-                    value: animal.urlIot,
+                    value: widget.animal.urlIot,
                   ),
                   
                   const SizedBox(height: AppDimensions.marginLarge),
@@ -221,7 +259,7 @@ class AnimalDetailPanel extends StatelessWidget {
                         Navigator.pushNamed(
                           context,
                           '/clinical-history',
-                          arguments: animal.id,
+                          arguments: widget.animal.id,
                         );
                       },
                       style: ElevatedButton.styleFrom(
@@ -311,7 +349,7 @@ class AnimalDetailPanel extends StatelessWidget {
           ],
         ),
         content: Text(
-          '¿Estás seguro de que deseas eliminar a ${animal.name}? Esta acción no se puede deshacer.',
+          '¿Estás seguro de que deseas eliminar a ${widget.animal.name}? Esta acción no se puede deshacer.',
           style: AppTextStyles.bodyMedium,
         ),
         actions: [
@@ -348,7 +386,7 @@ class AnimalDetailPanel extends StatelessWidget {
       
       // Llamar al API para eliminar
       final apiClient = ApiClient();
-      await apiClient.delete('/animals/${animal.idAnimal}');
+      await apiClient.delete('/animals/${widget.animal.idAnimal}');
       
       // Cerrar indicador de carga
       if (context.mounted) {
@@ -651,3 +689,5 @@ class _VitalSignCard extends StatelessWidget {
     );
   }
 }
+
+

@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:http/http.dart' as http;
-import 'dart:html' as html;
+import 'package:file_picker/file_picker.dart';
+import 'dart:typed_data';
+
 import '../../../../core/config/app_config.dart';
 import '../../../../core/storage/token_storage.dart';
 import '../../../shared/widgets/custom_snackbar.dart';
@@ -10,6 +12,8 @@ import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../auth/presentation/bloc/auth_state.dart';
 import '../bloc/animal_bloc.dart';
 import '../bloc/animal_event.dart';
+
+// --- (EL import 'dart:html' as html; FUE ELIMINADO) ---
 
 class AddAnimalDialog extends StatefulWidget {
   final AnimalBloc animalBloc;
@@ -58,28 +62,44 @@ class _AddAnimalDialogState extends State<AddAnimalDialog> {
     super.dispose();
   }
 
+  //
+  // --- ⭐ ¡AQUÍ ESTÁ LA CORRECCIÓN! ⭐ ---
+  //
+  // Esta función ahora usa 'package:file_picker'
+  // y funciona en Android, iOS y Web.
+  //
   Future<void> _pickImage() async {
-    final html.FileUploadInputElement uploadInput = html.FileUploadInputElement();
-    uploadInput.accept = 'image/*';
-    uploadInput.click();
+    try {
+      // 1. Llama al selector de archivos (file_picker)
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.image, // Filtra solo para imágenes (como tu 'image/*')
+        withData: true,      // Pide que file_picker lea los bytes del archivo
+      );
 
-    uploadInput.onChange.listen((e) {
-      final files = uploadInput.files;
-      if (files != null && files.isNotEmpty) {
-        final file = files[0];
-        final reader = html.FileReader();
+      // 2. Comprueba si el usuario seleccionó un archivo
+      if (result != null && result.files.isNotEmpty) {
+        final file = result.files.first;
 
-        reader.onLoadEnd.listen((e) {
-          setState(() {
-            _selectedImageBytes = reader.result as Uint8List;
-            _selectedImageName = file.name;
-          });
+        // 3. Actualiza el estado con los bytes y el nombre
+        setState(() {
+          _selectedImageBytes = file.bytes;
+          _selectedImageName = file.name;
         });
-
-        reader.readAsArrayBuffer(file);
+      } else {
+        // El usuario canceló la selección
+        print('No se seleccionó ninguna imagen.');
       }
-    });
+    } catch (e) {
+      // Manejar cualquier error del file_picker
+      print('Error al seleccionar la imagen: $e');
+      if (mounted) {
+        CustomSnackbar.showError(context, 'Error al seleccionar la imagen: $e');
+      }
+    }
   }
+  //
+  // --- ⭐ FIN DE LA CORRECCIÓN ⭐ ---
+  //
 
   DateTime? _parseBirthDate(String value) {
     // Espera formato DD/MM/YYYY
@@ -115,7 +135,7 @@ class _AddAnimalDialogState extends State<AddAnimalDialog> {
       final authState = context.read<AuthBloc>().state;
       final inventoryId = authState is Authenticated ? authState.user.inventoryId : 1;
       
-      // Obtener el token
+      // Obtener el token de autenticación
       final token = await TokenStorage.getToken();
       
       // Crear multipart request
@@ -133,8 +153,15 @@ class _AddAnimalDialogState extends State<AddAnimalDialog> {
       request.fields['specie'] = _selectedSpecie.toString();
       request.fields['urlIot'] = _urlIotController.text;
       request.fields['location'] = _locationController.text;
-      request.fields['hearRate'] = _hearRateController.text;
-      request.fields['temperature'] = _temperatureController.text;
+      
+      // Usar valores por defecto si los campos están vacíos (se actualizarán desde IoT)
+      request.fields['hearRate'] = _hearRateController.text.isEmpty 
+          ? '70' // Valor por defecto
+          : _hearRateController.text;
+      request.fields['temperature'] = _temperatureController.text.isEmpty 
+          ? '38' // Valor por defecto
+          : _temperatureController.text;
+          
       request.fields['sex'] = _sex.toString();
       
       // Parsear y convertir birthDate a formato ISO 8601
@@ -144,6 +171,8 @@ class _AddAnimalDialogState extends State<AddAnimalDialog> {
       }
       
       // Agregar imagen si fue seleccionada
+      // (Esta lógica tuya ya era correcta y funciona
+      // perfectamente con la nueva función _pickImage)
       if (_selectedImageBytes != null && _selectedImageName != null) {
         request.files.add(
           http.MultipartFile.fromBytes(
@@ -159,12 +188,15 @@ class _AddAnimalDialogState extends State<AddAnimalDialog> {
       final response = await http.Response.fromStream(streamedResponse);
       
       if (response.statusCode >= 200 && response.statusCode < 300) {
+        // Recargar lista de animales usando el bloc recibido como parámetro
+        widget.animalBloc.add(LoadAnimals(inventoryId));
+        
+        // Esperar un breve momento para que se actualice la lista
+        await Future.delayed(const Duration(milliseconds: 500));
+        
         if (mounted) {
           Navigator.of(context).pop();
           CustomSnackbar.showSuccess(context, 'Animal agregado correctamente');
-          
-          // Recargar lista de animales usando el bloc recibido como parámetro
-          widget.animalBloc.add(LoadAnimals(inventoryId));
         }
       } else {
         // Mostrar el error específico del backend
@@ -176,6 +208,7 @@ class _AddAnimalDialogState extends State<AddAnimalDialog> {
         }
       }
     } catch (e) {
+      print('[ADD ANIMAL ERROR] $e');
       if (mounted) {
         CustomSnackbar.showError(
           context,
@@ -309,11 +342,12 @@ class _AddAnimalDialogState extends State<AddAnimalDialog> {
                 ),
                 const SizedBox(height: 16),
                 
-                // Frecuencia cardíaca
+                // Frecuencia cardíaca (ahora opcional, se obtendrá de IoT)
                 TextFormField(
                   controller: _hearRateController,
                   decoration: InputDecoration(
-                    labelText: 'Frecuencia Cardíaca (bpm) *',
+                    labelText: 'Frecuencia Cardíaca (bpm) - Opcional',
+                    hintText: 'Se actualizará desde IoT',
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -321,23 +355,24 @@ class _AddAnimalDialogState extends State<AddAnimalDialog> {
                   keyboardType: TextInputType.number,
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                   validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Por favor ingresa la frecuencia cardíaca';
-                    }
-                    final int? rate = int.tryParse(value);
-                    if (rate == null || rate < 30 || rate > 150) {
-                      return 'Valor debe estar entre 30 y 150 bpm';
+                    // Ya no es requerido
+                    if (value != null && value.isNotEmpty) {
+                      final int? rate = int.tryParse(value);
+                      if (rate == null || rate < 30 || rate > 150) {
+                        return 'Valor debe estar entre 30 y 150 bpm';
+                      }
                     }
                     return null;
                   },
                 ),
                 const SizedBox(height: 16),
                 
-                // Temperatura
+                // Temperatura (ahora opcional, se obtendrá de IoT)
                 TextFormField(
                   controller: _temperatureController,
                   decoration: InputDecoration(
-                    labelText: 'Temperatura (°C) *',
+                    labelText: 'Temperatura (°C) - Opcional',
+                    hintText: 'Se actualizará desde IoT',
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -345,12 +380,12 @@ class _AddAnimalDialogState extends State<AddAnimalDialog> {
                   keyboardType: TextInputType.number,
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                   validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Por favor ingresa la temperatura';
-                    }
-                    final int? temp = int.tryParse(value);
-                    if (temp == null || temp < 30 || temp > 45) {
-                      return 'Valor debe estar entre 30 y 45 °C';
+                    // Ya no es requerido
+                    if (value != null && value.isNotEmpty) {
+                      final int? temp = int.tryParse(value);
+                      if (temp == null || temp < 30 || temp > 45) {
+                        return 'Valor debe estar entre 30 y 45 °C';
+                      }
                     }
                     return null;
                   },
@@ -405,6 +440,7 @@ class _AddAnimalDialogState extends State<AddAnimalDialog> {
                 ),
                 const SizedBox(height: 8),
                 InkWell(
+                  // 'onTap' ahora llama a la nueva función _pickImage
                   onTap: _pickImage,
                   child: Container(
                     height: 150,
@@ -413,6 +449,7 @@ class _AddAnimalDialogState extends State<AddAnimalDialog> {
                       borderRadius: BorderRadius.circular(12),
                       color: Colors.grey[50],
                     ),
+                    // Esta lógica de UI ya era correcta
                     child: _selectedImageBytes != null
                         ? Stack(
                             children: [
