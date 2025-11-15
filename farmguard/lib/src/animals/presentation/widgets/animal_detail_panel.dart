@@ -91,7 +91,7 @@ class _AnimalDetailPanelState extends State<AnimalDetailPanel> {
                       ],
                     ),
                     child: Image.network(
-                      _getImageUrl(),
+                      widget.animal.urlPhoto,
                       fit: BoxFit.cover,
                       errorBuilder: (context, error, stackTrace) {
                         return Container(
