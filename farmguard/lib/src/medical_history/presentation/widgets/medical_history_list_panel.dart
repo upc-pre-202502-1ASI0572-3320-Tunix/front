@@ -182,60 +182,15 @@ class _MedicalHistoryListPanelState extends State<MedicalHistoryListPanel> {
                 ),
               ),
               
-              // Header Table
-              Container(
-                margin: const EdgeInsets.symmetric(
-                  horizontal: AppDimensions.marginLarge,
-                  vertical: AppDimensions.marginMedium,
-                ),
-                decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(AppDimensions.radiusMedium),
-                  border: Border.all(
-                    color: AppColors.primary,
-                    width: 2,
-                  ),
-                ),
-                child: Table(
-                  columnWidths: const {
-                    0: FlexColumnWidth(1.5), // Código
-                    1: FlexColumnWidth(2.5), // Nombre
-                    2: FlexColumnWidth(2.0), // Especie
-                    3: FlexColumnWidth(1.5), // Sexo
-                    4: FlexColumnWidth(1.0), // Acción
-                  },
-                  children: [
-                    TableRow(
-                      children: [
-                        _buildHeaderCell('CÓDIGO'),
-                        _buildHeaderCell('NOMBRE'),
-                        _buildHeaderCell('ESPECIE'),
-                        _buildHeaderCell('SEXO'),
-                        _buildHeaderCell('ACCIÓN'),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              
-              // Data Table
+              // Lista de Animales en Cards
               Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppDimensions.marginLarge,
-                  ),
-                  child: Table(
-                    columnWidths: const {
-                      0: FlexColumnWidth(1.5), // Código
-                      1: FlexColumnWidth(2.5), // Nombre
-                      2: FlexColumnWidth(2.0), // Especie
-                      3: FlexColumnWidth(1.5), // Sexo
-                      4: FlexColumnWidth(1.0), // Acción
-                    },
-                    children: displayAnimals
-                        .map((animal) => _buildDataRow(animal))
-                        .toList(),
-                  ),
+                child: ListView.builder(
+                  padding: const EdgeInsets.all(AppDimensions.paddingLarge),
+                  itemCount: displayAnimals.length,
+                  itemBuilder: (context, index) {
+                    final animal = displayAnimals[index];
+                    return _buildAnimalCard(context, animal);
+                  },
                 ),
               ),
             ],
@@ -245,74 +200,91 @@ class _MedicalHistoryListPanelState extends State<MedicalHistoryListPanel> {
     );
   }
 
-  Widget _buildHeaderCell(String text) {
-    return Padding(
-      padding: const EdgeInsets.all(AppDimensions.paddingMedium),
-      child: Text(
-        text,
-        style: AppTextStyles.bodyMedium.copyWith(
-          color: AppColors.primary,
-          fontWeight: FontWeight.bold,
+  Widget _buildAnimalCard(BuildContext context, Animal animal) {
+    return Card(
+      elevation: 4,
+      margin: const EdgeInsets.only(bottom: AppDimensions.marginLarge),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppDimensions.radiusMedium),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(AppDimensions.paddingLarge),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  animal.name,
+                  style: AppTextStyles.h3.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.primaryDark,
+                  ),
+                ),
+                Text(
+                  '#${animal.idAnimal.substring(0, 6)}',
+                  style: AppTextStyles.bodyMedium.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppDimensions.marginSmall),
+            const Divider(),
+            const SizedBox(height: AppDimensions.marginSmall),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                _buildInfoColumn('Especie', animal.specie),
+                _buildInfoColumn('Sexo', animal.sex ? 'Macho' : 'Hembra'),
+              ],
+            ),
+            const SizedBox(height: AppDimensions.marginMedium),
+            Align(
+              alignment: Alignment.centerRight,
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.pushNamed(
+                    context,
+                    '/clinical-history',
+                    arguments: animal.id,
+                  );
+                },
+                icon: const Icon(Icons.visibility),
+                label: const Text('Ver Historial'),
+                style: ElevatedButton.styleFrom(
+                  foregroundColor: Colors.white,
+                  backgroundColor: AppColors.primary,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(AppDimensions.radiusSmall),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
-        textAlign: TextAlign.center,
       ),
     );
   }
 
-  TableRow _buildDataRow(Animal animal) {
-    return TableRow(
-      decoration: const BoxDecoration(
-        color: Colors.transparent,
-      ),
+  Widget _buildInfoColumn(String title, String value) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildDataCell(animal.idAnimal.substring(0, 6)),
-        _buildDataCell(animal.name),
-        _buildDataCell(animal.specie),
-        _buildDataCell(animal.sex ? 'Macho' : 'Hembra'),
-        _buildActionCell(animal),
-      ],
-    );
-  }
-
-  Widget _buildDataCell(String text) {
-    return TableCell(
-      verticalAlignment: TableCellVerticalAlignment.middle,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppDimensions.paddingMedium,
-          vertical: AppDimensions.paddingSmall,
-        ),
-        child: Text(
-          text,
-          style: AppTextStyles.bodyMedium,
-          textAlign: TextAlign.center,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildActionCell(Animal animal) {
-    return TableCell(
-      verticalAlignment: TableCellVerticalAlignment.middle,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(
-          vertical: AppDimensions.paddingSmall,
-        ),
-        child: Center(
-          child: IconButton(
-            onPressed: () {
-              Navigator.pushNamed(
-                context,
-                '/clinical-history',
-                arguments: animal.id, // Usar id long
-              );
-            },
-            icon: const Icon(Icons.visibility),
-            color: AppColors.primary,
-            tooltip: 'Ver Historial Clínico',
+        Text(
+          title,
+          style: AppTextStyles.bodySmall.copyWith(
+            color: AppColors.textSecondary,
+            fontWeight: FontWeight.bold,
           ),
         ),
-      ),
+        const SizedBox(height: AppDimensions.marginXSmall),
+        Text(
+          value,
+          style: AppTextStyles.bodyMedium,
+        ),
+      ],
     );
   }
 }

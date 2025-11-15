@@ -12,6 +12,7 @@ import '../../data/datasources/iot_remote_data_source.dart';
 import '../../data/repositories/animal_repository_impl.dart';
 import '../../data/services/iot_sync_service.dart';
 import '../../domain/usecases/get_animals_by_inventory.dart';
+import '../../domain/entities/animal.dart';
 import '../bloc/animal_bloc.dart';
 import '../bloc/animal_event.dart';
 import '../bloc/animal_state.dart';
@@ -54,18 +55,67 @@ class AnimalsScreen extends StatelessWidget {
   }
 }
 
-class AnimalsView extends StatelessWidget {
+class AnimalsView extends StatefulWidget {
   const AnimalsView({super.key});
 
   @override
+  State<AnimalsView> createState() => _AnimalsViewState();
+}
+
+class _AnimalsViewState extends State<AnimalsView> {
+  void _showAnimalDetailsBottomSheet(Animal animal) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.7,
+        minChildSize: 0.5,
+        maxChildSize: 0.95,
+        builder: (context, scrollController) => Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(20),
+              topRight: Radius.circular(20),
+            ),
+          ),
+          child: SingleChildScrollView(
+            controller: scrollController,
+            child: AnimalDetailPanel(animal: animal),
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+    final isMobile = size.width < 768;
+    final isTablet = size.width >= 768 && size.width < 1024;
+
     return Scaffold(
       backgroundColor: AppColors.background,
+      drawer: isMobile
+          ? Drawer(
+              child: Container(
+                color: AppColors.background,
+                child: const AppSidebar(),
+              ),
+            )
+          : null,
+      appBar: isMobile
+          ? AppBar(
+              backgroundColor: AppColors.primary,
+              elevation: 0,
+              title: const Text('Animales'),
+            )
+          : null,
       body: Row(
         children: [
-          // Sidebar
-          const AppSidebar(currentRoute: 'animals'),
-          
+          // Sidebar - solo en desktop
+          if (!isMobile) const AppSidebar(),
           // Contenido principal
           Expanded(
             child: BlocConsumer<AnimalBloc, AnimalState>(
@@ -97,12 +147,17 @@ class AnimalsView extends StatelessWidget {
                           style: AppTextStyles.h3,
                         ),
                         const SizedBox(height: AppDimensions.marginSmall),
-                        Text(
-                          state.message,
-                          style: AppTextStyles.bodyMedium.copyWith(
-                            color: AppColors.textSecondary,
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AppDimensions.paddingMedium,
                           ),
-                          textAlign: TextAlign.center,
+                          child: Text(
+                            state.message,
+                            style: AppTextStyles.bodyMedium.copyWith(
+                              color: AppColors.textSecondary,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
                         ),
                         const SizedBox(height: AppDimensions.marginLarge),
                         ElevatedButton.icon(
@@ -136,10 +191,15 @@ class AnimalsView extends StatelessWidget {
                             style: AppTextStyles.h3,
                           ),
                           const SizedBox(height: AppDimensions.marginSmall),
-                          Text(
-                            'Agrega tu primer animal para comenzar',
-                            style: AppTextStyles.bodyMedium.copyWith(
-                              color: AppColors.textSecondary,
+                          Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: AppDimensions.paddingMedium,
+                            ),
+                            child: Text(
+                              'Agrega tu primer animal para comenzar',
+                              style: AppTextStyles.bodyMedium.copyWith(
+                                color: AppColors.textSecondary,
+                              ),
                             ),
                           ),
                           const SizedBox(height: AppDimensions.marginLarge),
@@ -168,39 +228,81 @@ class AnimalsView extends StatelessWidget {
                     );
                   }
 
-                  return Row(
-                    children: [
-                      // Panel izquierdo - Lista de animales (70%)
-                      Expanded(
-                        flex: 7,
-                        child: AnimalListPanel(
-                          animals: state.filteredAnimals,
-                          selectedAnimalId: state.selectedAnimal?.id,
+                  // Layout responsivo
+                  if (isMobile) {
+                    // Móvil: solo lista, detalles en Bottom Sheet
+                    return AnimalListPanel(
+                      animals: state.filteredAnimals,
+                      selectedAnimalId: state.selectedAnimal?.id,
+                      onShowDetails: _showAnimalDetailsBottomSheet,
+                    );
+                  } else if (isTablet) {
+                    // Tablet: row con flex ajustado
+                    return Row(
+                      children: [
+                        // Panel izquierdo - Lista de animales (60%)
+                        Expanded(
+                          flex: 6,
+                          child: AnimalListPanel(
+                            animals: state.filteredAnimals,
+                            selectedAnimalId: state.selectedAnimal?.id,
+                          ),
                         ),
-                      ),
-                      
-                      // Divisor vertical
-                      Container(
-                        width: 1,
-                        color: AppColors.divider,
-                      ),
-                      
-                      // Panel derecho - Detalle del animal (30%)
-                      Expanded(
-                        flex: 3,
-                        child: state.selectedAnimal != null
-                            ? AnimalDetailPanel(animal: state.selectedAnimal!)
-                            : Center(
-                                child: Text(
-                                  'Selecciona un animal',
-                                  style: AppTextStyles.bodyLarge.copyWith(
-                                    color: AppColors.textSecondary,
+                        // Divisor vertical
+                        Container(
+                          width: 1,
+                          color: AppColors.divider,
+                        ),
+                        // Panel derecho - Detalle del animal (40%)
+                        Expanded(
+                          flex: 4,
+                          child: state.selectedAnimal != null
+                              ? AnimalDetailPanel(animal: state.selectedAnimal!)
+                              : Center(
+                                  child: Text(
+                                    'Selecciona un animal',
+                                    style: AppTextStyles.bodyLarge.copyWith(
+                                      color: AppColors.textSecondary,
+                                    ),
                                   ),
                                 ),
-                              ),
-                      ),
-                    ],
-                  );
+                        ),
+                      ],
+                    );
+                  } else {
+                    // Desktop: row con flex original (70/30)
+                    return Row(
+                      children: [
+                        // Panel izquierdo - Lista de animales (70%)
+                        Expanded(
+                          flex: 7,
+                          child: AnimalListPanel(
+                            animals: state.filteredAnimals,
+                            selectedAnimalId: state.selectedAnimal?.id,
+                          ),
+                        ),
+                        // Divisor vertical
+                        Container(
+                          width: 1,
+                          color: AppColors.divider,
+                        ),
+                        // Panel derecho - Detalle del animal (30%)
+                        Expanded(
+                          flex: 3,
+                          child: state.selectedAnimal != null
+                              ? AnimalDetailPanel(animal: state.selectedAnimal!)
+                              : Center(
+                                  child: Text(
+                                    'Selecciona un animal',
+                                    style: AppTextStyles.bodyLarge.copyWith(
+                                      color: AppColors.textSecondary,
+                                    ),
+                                  ),
+                                ),
+                        ),
+                      ],
+                    );
+                  }
                 }
 
                 return const SizedBox.shrink();
