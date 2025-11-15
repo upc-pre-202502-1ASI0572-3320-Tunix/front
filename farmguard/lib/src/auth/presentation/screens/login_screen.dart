@@ -4,7 +4,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import '../../../../core/theme/theme.dart';
 import '../../../shared/widgets/app_footer.dart';
 import '../../../shared/widgets/custom_snackbar.dart';
-import '../../../dashboard/presentation/screens/dashboard_screen.dart';
+import '../../../animals/presentation/screens/animals_screen.dart';
 import '../bloc/auth_bloc.dart';
 import '../bloc/auth_event.dart';
 import '../bloc/auth_state.dart';
@@ -58,11 +58,11 @@ class _LoginScreenState extends State<LoginScreen> {
               context,
               '¡Bienvenido, ${state.user.username}!',
             );
-            // Navegar al dashboard
+            // Navegar a la pantalla de animales
             Navigator.pushReplacement(
               context,
               MaterialPageRoute(
-                builder: (context) => const DashboardScreen(),
+                builder: (context) => const AnimalsScreen(),
               ),
             );
           }

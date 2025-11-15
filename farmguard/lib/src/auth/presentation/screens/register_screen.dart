@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 // ignore: avoid_web_libraries_in_flutter
-import 'dart:html' as html;
+import 'package:file_picker/file_picker.dart';
 import '../../../../core/theme/theme.dart';
 import '../../../shared/widgets/app_footer.dart';
 import '../../../shared/widgets/custom_snackbar.dart';
@@ -46,26 +46,26 @@ class _RegisterScreenState extends State<RegisterScreen> {
     super.dispose();
   }
 
-  void _pickImage() {
-    final html.FileUploadInputElement uploadInput = html.FileUploadInputElement();
-    uploadInput.accept = 'image/*';
-    uploadInput.click();
+  Future<void> _pickImage() async {
+    try {
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.image,
+        withData: true,
+      );
 
-    uploadInput.onChange.listen((e) {
-      final files = uploadInput.files;
-      if (files != null && files.isNotEmpty) {
-        final file = files[0];
-        final reader = html.FileReader();
-        
-        reader.readAsArrayBuffer(file);
-        reader.onLoadEnd.listen((e) {
-          setState(() {
-            _imageBytes = reader.result as Uint8List;
-            _imageFileName = file.name;
-          });
+      if (result != null && result.files.isNotEmpty) {
+        final file = result.files.first;
+        setState(() {
+          _imageBytes = file.bytes;
+          _imageFileName = file.name;
         });
       }
-    });
+    } catch (e) {
+      print('Error al seleccionar imagen: $e');
+      if (mounted) {
+        CustomSnackbar.showError(context, 'Error al seleccionar la imagen');
+      }
+    }
   }
 
   void _onRegister() {
