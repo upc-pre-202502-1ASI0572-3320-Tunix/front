@@ -63,7 +63,7 @@ class AnimalsView extends StatelessWidget {
       body: Row(
         children: [
           // Sidebar
-          const AppSidebar(),
+          const AppSidebar(currentRoute: 'animals'),
           
           // Contenido principal
           Expanded(

@@ -60,7 +60,7 @@ class MedicalHistoryView extends StatelessWidget {
       backgroundColor: AppColors.background,
       body: Row(
         children: [
-          const AppSidebar(),
+          const AppSidebar(currentRoute: 'medical_history'),
           Expanded(
             child: BlocConsumer<AnimalBloc, AnimalState>(
               listener: (context, state) {
