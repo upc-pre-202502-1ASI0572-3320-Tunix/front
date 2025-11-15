@@ -254,7 +254,7 @@ class _AnimalDetailPanelState extends State<AnimalDetailPanel> {
                   // Botón Historial Médico
                   SizedBox(
                     width: double.infinity,
-                    child: ElevatedButton.icon(
+                    child: ElevatedButton(
                       onPressed: () {
                         Navigator.pushNamed(
                           context,
@@ -262,7 +262,6 @@ class _AnimalDetailPanelState extends State<AnimalDetailPanel> {
                           arguments: widget.animal.id,
                         );
                       },
-                      label: const Text('Ver Historial Médico'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primary,
                         foregroundColor: Colors.white,
@@ -271,6 +270,7 @@ class _AnimalDetailPanelState extends State<AnimalDetailPanel> {
                           borderRadius: BorderRadius.circular(AppDimensions.radiusMedium),
                         ),
                       ),
+                      child: const Text('Ver Historial Médico'),
                     ),
                   ),
                   const SizedBox(height: AppDimensions.marginMedium),
@@ -280,12 +280,10 @@ class _AnimalDetailPanelState extends State<AnimalDetailPanel> {
                     children: [
                       // Botón Editar
                       Expanded(
-                        child: OutlinedButton.icon(
+                        child: OutlinedButton(
                           onPressed: () {
-                            // TODO: Implementar edición de animal
+                            // Implementar edición de animal
                           },
-                          icon: const Icon(Icons.edit, size: 20),
-                          label: const Text('Editar'),
                           style: OutlinedButton.styleFrom(
                             foregroundColor: AppColors.primary,
                             side: BorderSide(color: AppColors.primary, width: 2),
@@ -294,15 +292,21 @@ class _AnimalDetailPanelState extends State<AnimalDetailPanel> {
                               borderRadius: BorderRadius.circular(AppDimensions.radiusMedium),
                             ),
                           ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: const [
+                              Icon(Icons.edit, size: 20),
+                              SizedBox(width: 8),
+                              Text('Editar'),
+                            ],
+                          ),
                         ),
                       ),
                       const SizedBox(width: AppDimensions.marginMedium),
                       // Botón Eliminar
                       Expanded(
-                        child: ElevatedButton.icon(
+                        child: ElevatedButton(
                           onPressed: () => _showDeleteConfirmation(context),
-                          icon: const Icon(Icons.delete, size: 20),
-                          label: const Text('Eliminar'),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColors.error,
                             foregroundColor: Colors.white,
@@ -310,6 +314,14 @@ class _AnimalDetailPanelState extends State<AnimalDetailPanel> {
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(AppDimensions.radiusMedium),
                             ),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: const [
+                              Icon(Icons.delete, size: 20),
+                              SizedBox(width: 8),
+                              Text('Eliminar'),
+                            ],
                           ),
                         ),
                       ),

@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:http/http.dart' as http;
 import 'dart:html' as html;
-import 'dart:typed_data';
 import '../../../../core/config/app_config.dart';
 import '../../../../core/storage/token_storage.dart';
 import '../../../shared/widgets/custom_snackbar.dart';
@@ -178,7 +177,13 @@ class _AddAnimalDialogState extends State<AddAnimalDialog> {
           CustomSnackbar.showSuccess(context, 'Animal agregado correctamente');
         }
       } else {
-        throw Exception('Error al crear el animal: ${response.body}');
+        // Mostrar el error específico del backend
+        if (mounted) {
+          CustomSnackbar.showError(
+            context,
+            'Error (${response.statusCode}): ${response.body}',
+          );
+        }
       }
     } catch (e) {
       print('[ADD ANIMAL ERROR] $e');
@@ -239,7 +244,7 @@ class _AddAnimalDialogState extends State<AddAnimalDialog> {
                 
                 // Especie
                 DropdownButtonFormField<int>(
-                  value: _selectedSpecie,
+                  initialValue: _selectedSpecie,
                   decoration: InputDecoration(
                     labelText: 'Especie *',
                     border: OutlineInputBorder(
@@ -290,7 +295,7 @@ class _AddAnimalDialogState extends State<AddAnimalDialog> {
                 
                 // Sexo
                 DropdownButtonFormField<bool>(
-                  value: _sex,
+                  initialValue: _sex,
                   decoration: InputDecoration(
                     labelText: 'Sexo *',
                     border: OutlineInputBorder(

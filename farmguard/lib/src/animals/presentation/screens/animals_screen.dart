@@ -17,6 +17,7 @@ import '../bloc/animal_event.dart';
 import '../bloc/animal_state.dart';
 import '../widgets/animal_list_panel.dart';
 import '../widgets/animal_detail_panel.dart';
+import '../widgets/add_animal_dialog.dart';
 
 class AnimalsScreen extends StatelessWidget {
   const AnimalsScreen({super.key});
@@ -139,6 +140,27 @@ class AnimalsView extends StatelessWidget {
                             'Agrega tu primer animal para comenzar',
                             style: AppTextStyles.bodyMedium.copyWith(
                               color: AppColors.textSecondary,
+                            ),
+                          ),
+                          const SizedBox(height: AppDimensions.marginLarge),
+                          ElevatedButton.icon(
+                            onPressed: () {
+                              showDialog(
+                                context: context,
+                                builder: (dialogContext) => AddAnimalDialog(
+                                  animalBloc: context.read<AnimalBloc>(),
+                                ),
+                              );
+                            },
+                            icon: const Icon(Icons.add),
+                            label: const Text('Agregar Animal'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primary,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: AppDimensions.paddingLarge,
+                                vertical: AppDimensions.paddingMedium,
+                              ),
                             ),
                           ),
                         ],

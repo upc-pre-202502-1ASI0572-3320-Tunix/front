@@ -1,6 +1,9 @@
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+// ignore: avoid_web_libraries_in_flutter
+import 'dart:html' as html;
 import '../../../../core/theme/theme.dart';
 import '../../../shared/widgets/app_footer.dart';
 import '../../../shared/widgets/custom_snackbar.dart';
@@ -27,6 +30,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _emailController = TextEditingController();
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
+  
+  // Variables para la imagen
+  Uint8List? _imageBytes;
+  String? _imageFileName;
 
   @override
   void dispose() {
@@ -39,6 +46,28 @@ class _RegisterScreenState extends State<RegisterScreen> {
     super.dispose();
   }
 
+  void _pickImage() {
+    final html.FileUploadInputElement uploadInput = html.FileUploadInputElement();
+    uploadInput.accept = 'image/*';
+    uploadInput.click();
+
+    uploadInput.onChange.listen((e) {
+      final files = uploadInput.files;
+      if (files != null && files.isNotEmpty) {
+        final file = files[0];
+        final reader = html.FileReader();
+        
+        reader.readAsArrayBuffer(file);
+        reader.onLoadEnd.listen((e) {
+          setState(() {
+            _imageBytes = reader.result as Uint8List;
+            _imageFileName = file.name;
+          });
+        });
+      }
+    });
+  }
+
   void _onRegister() {
     if (_formKey.currentState!.validate()) {
       context.read<AuthBloc>().add(
@@ -48,6 +77,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
               firstName: _firstNameController.text.trim(),
               lastName: _lastNameController.text.trim(),
               email: _emailController.text.trim(),
+              photoBytes: _imageBytes,
+              photoFileName: _imageFileName,
             ),
           );
     }
@@ -124,7 +155,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                     colors: [
-                      AppColors.primary.withOpacity(0.3),
+                      AppColors.primary.withValues(alpha: 0.3),
                       Colors.black87,
                       Colors.black,
                     ],
@@ -137,7 +168,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         // Overlay oscuro para contraste
         Positioned.fill(
           child: Container(
-            color: Colors.black.withOpacity(0.5),
+            color: Colors.black.withValues(alpha: 0.5),
           ),
         ),
         // Contenido
@@ -223,7 +254,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           constraints: const BoxConstraints(maxWidth: 480),
           child: Card(
             elevation: 12,
-            shadowColor: Colors.black.withOpacity(0.3),
+            shadowColor: Colors.black.withValues(alpha: 0.3),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(AppDimensions.radiusLarge),
             ),
@@ -390,6 +421,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
               return null;
             },
           ),
+          const SizedBox(height: AppDimensions.marginLarge),
+          // Selector de imagen
+          _buildImagePicker(isLoading),
           const SizedBox(height: AppDimensions.marginXLarge),
           AuthButton(
             text: 'Registrarse',
@@ -417,6 +451,110 @@ class _RegisterScreenState extends State<RegisterScreen> {
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildImagePicker(bool isLoading) {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppDimensions.radiusMedium),
+        side: BorderSide(
+          color: AppColors.textSecondary.withValues(alpha: 0.3),
+          width: 1,
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(AppDimensions.paddingMedium),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.photo_camera,
+                  color: AppColors.primary,
+                  size: 20,
+                ),
+                const SizedBox(width: AppDimensions.marginSmall),
+                Text(
+                  'Foto de perfil (opcional)',
+                  style: AppTextStyles.bodyMedium.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppDimensions.marginMedium),
+            if (_imageBytes != null) ...[
+              // Preview de la imagen seleccionada
+              Row(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(AppDimensions.radiusSmall),
+                    child: Image.memory(
+                      _imageBytes!,
+                      width: 120,
+                      height: 120,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                  const SizedBox(width: AppDimensions.marginMedium),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _imageFileName ?? 'Imagen',
+                          style: AppTextStyles.bodySmall,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: AppDimensions.marginSmall),
+                        ElevatedButton.icon(
+                          onPressed: isLoading ? null : () {
+                            setState(() {
+                              _imageBytes = null;
+                              _imageFileName = null;
+                            });
+                          },
+                          icon: const Icon(Icons.delete, size: 18),
+                          label: const Text('Eliminar'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.red[50],
+                            foregroundColor: Colors.red[700],
+                            elevation: 0,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ] else ...[
+              // Botón para seleccionar imagen
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: isLoading ? null : _pickImage,
+                  icon: const Icon(Icons.add_photo_alternate),
+                  label: const Text('Seleccionar imagen'),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: AppDimensions.paddingMedium,
+                    ),
+                    side: BorderSide(
+                      color: AppColors.primary.withValues(alpha: 0.5),
+                      width: 1.5,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }

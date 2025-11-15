@@ -3,6 +3,27 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/theme/theme.dart';
 import '../../../../core/network/api_client.dart';
 import '../../../dashboard/presentation/widgets/app_sidebar.dart';
+import '../../../vaccines/data/datasources/vaccine_remote_data_source.dart';
+import '../../../vaccines/data/repositories/vaccine_repository_impl.dart';
+import '../../../vaccines/domain/usecases/get_vaccines_by_medical_history.dart';
+import '../../../vaccines/domain/usecases/create_vaccine.dart';
+import '../../../vaccines/domain/usecases/delete_vaccine.dart';
+import '../../../vaccines/presentation/bloc/vaccine_bloc.dart';
+import '../../../vaccines/presentation/widgets/vaccines_list.dart';
+import '../../../disease_diagnosis/data/datasources/disease_diagnosis_remote_data_source.dart';
+import '../../../disease_diagnosis/data/repositories/disease_diagnosis_repository_impl.dart';
+import '../../../disease_diagnosis/domain/usecases/get_disease_diagnosis_by_medical_history.dart';
+import '../../../disease_diagnosis/domain/usecases/create_disease_diagnosis.dart';
+import '../../../disease_diagnosis/domain/usecases/delete_disease_diagnosis.dart';
+import '../../../disease_diagnosis/presentation/bloc/disease_diagnosis_bloc.dart';
+import '../../../disease_diagnosis/presentation/widgets/disease_diagnosis_list.dart';
+import '../../../treatments/data/datasources/treatment_remote_data_source.dart';
+import '../../../treatments/data/repositories/treatment_repository_impl.dart';
+import '../../../treatments/domain/usecases/get_treatments_by_medical_history.dart';
+import '../../../treatments/domain/usecases/create_treatment.dart';
+import '../../../treatments/domain/usecases/delete_treatment.dart';
+import '../../../treatments/presentation/bloc/treatment_bloc.dart';
+import '../../../treatments/presentation/widgets/treatments_list.dart';
 import '../../data/datasources/medical_history_remote_data_source.dart';
 import '../../data/repositories/medical_history_repository_impl.dart';
 import '../../domain/usecases/get_medical_history_by_animal.dart';
@@ -20,7 +41,6 @@ class ClinicalHistoryScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    print('DEBUG ClinicalHistoryScreen: animalId type: ${animalId.runtimeType}, value: $animalId');
     return BlocProvider(
       create: (context) {
         final bloc = MedicalHistoryBloc(
@@ -34,7 +54,6 @@ class ClinicalHistoryScreen extends StatelessWidget {
         );
         
         // Cargar historial médico automáticamente
-        print('DEBUG: Calling LoadMedicalHistory with animalId: $animalId');
         bloc.add(LoadMedicalHistory(animalId));
         
         return bloc;
@@ -106,69 +125,99 @@ class ClinicalHistoryView extends StatelessWidget {
                   if (state is MedicalHistoryLoaded) {
                     final medicalHistory = state.medicalHistory;
                     
-                    return Container(
-                      color: Colors.white,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Header
-                          Container(
-                            padding: const EdgeInsets.all(AppDimensions.paddingLarge),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.05),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 2),
+                    return Column(
+                      children: [
+                        // Header - Ocupa todo el ancho
+                        Container(
+                          padding: const EdgeInsets.all(AppDimensions.paddingLarge),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            boxShadow: [
+                              BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.05),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            children: [
+                              IconButton(
+                                onPressed: () => Navigator.of(context).pop(),
+                                icon: const Icon(Icons.arrow_back),
+                                color: AppColors.primary,
+                              ),
+                              const SizedBox(width: AppDimensions.marginMedium),
+                              Text(
+                                'Historial Clínico',
+                                style: AppTextStyles.h2.copyWith(
+                                  color: AppColors.primaryDark,
+                                  fontWeight: FontWeight.bold,
                                 ),
-                              ],
-                            ),
-                            child: Row(
-                              children: [
-                                IconButton(
-                                  onPressed: () => Navigator.of(context).pop(),
-                                  icon: const Icon(Icons.arrow_back),
-                                  color: AppColors.primary,
+                              ),
+                              const Spacer(),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 8,
                                 ),
-                                const SizedBox(width: AppDimensions.marginMedium),
-                                Text(
-                                  'Historial Clínico',
-                                  style: AppTextStyles.h2.copyWith(
+                                decoration: BoxDecoration(
+                                    color: AppColors.primary.withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(
+                                    color: AppColors.primary,
+                                    width: 1,
+                                  ),
+                                ),
+                                child: Text(
+                                  'ID Historial: ${medicalHistory.id}',
+                                  style: AppTextStyles.bodyMedium.copyWith(
                                     color: AppColors.primaryDark,
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
-                                const Spacer(),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 16,
-                                    vertical: 8,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.primary.withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(20),
-                                    border: Border.all(
-                                      color: AppColors.primary,
-                                      width: 1,
-                                    ),
-                                  ),
-                                  child: Text(
-                                    'ID Historial: ${medicalHistory.id}',
-                                    style: AppTextStyles.bodyMedium.copyWith(
-                                      color: AppColors.primaryDark,
-                                      fontWeight: FontWeight.bold,
+                              ),
+                            ],
+                          ),
+                        ),
+                        
+                        // Contenido con ancho máximo y banners laterales
+                        Expanded(
+                          child: Row(
+                            children: [
+                              // Banner izquierdo (FÁCIL DE BORRAR - INICIO)
+                              Expanded(
+                                flex: 2,
+                                child: Container(
+                                  color: AppColors.background,
+                                  child: Center(
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(16.0),
+                                      child: Image.network(
+                                        'https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExNXlmcTM0Ymp2bW8wYjZjM2YxaWZiZzRvNm5wZDNjbnU5dzRlMzk3diZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/90LjOXKULOl0pwh1qd/giphy.gif',
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (context, error, stackTrace) {
+                                          return const SizedBox.shrink();
+                                        },
+                                      ),
                                     ),
                                   ),
                                 ),
-                              ],
-                            ),
-                          ),
-                          
-                          // TabBar
-                          Container(
-                            color: Colors.white,
-                            child: TabBar(
+                              ),
+                              // Banner izquierdo (FÁCIL DE BORRAR - FIN)
+                              
+                              // Contenido central
+                              ConstrainedBox(
+                                constraints: const BoxConstraints(maxWidth: 1200),
+                                child: Container(
+                                  color: Colors.white,
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    // TabBar
+                                    Container(
+                                      color: Colors.white,
+                                      child: TabBar(
                               labelColor: AppColors.primary,
                               unselectedLabelColor: AppColors.textSecondary,
                               indicatorColor: AppColors.primary,
@@ -178,15 +227,12 @@ class ClinicalHistoryView extends StatelessWidget {
                               ),
                               tabs: const [
                                 Tab(
-                                  icon: Icon(Icons.medical_services),
                                   text: 'Tratamientos',
                                 ),
                                 Tab(
-                                  icon: Icon(Icons.vaccines),
                                   text: 'Vacunas',
                                 ),
                                 Tab(
-                                  icon: Icon(Icons.health_and_safety),
                                   text: 'Diagnósticos',
                                 ),
                               ],
@@ -205,7 +251,34 @@ class ClinicalHistoryView extends StatelessWidget {
                           ),
                         ],
                       ),
-                    );
+                    ),
+                  ),
+                  
+                  // Banner derecho (FÁCIL DE BORRAR - INICIO)
+                  Expanded(
+                    flex: 2,
+                    child: Container(
+                      color: AppColors.background,
+                      child: Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Image.network(
+                            'https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExNXlmcTM0Ymp2bW8wYjZjM2YxaWZiZzRvNm5wZDNjbnU5dzRlMzk3diZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/90LjOXKULOl0pwh1qd/giphy.gif',
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              return const SizedBox.shrink();
+                            },
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  // Banner derecho (FÁCIL DE BORRAR - FIN)
+                ],
+              ),
+            ),
+          ],
+        );
                   }
 
                   return const SizedBox.shrink();
@@ -219,89 +292,53 @@ class ClinicalHistoryView extends StatelessWidget {
   }
 
   Widget _buildTreatmentsTab(int medicalHistoryId) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.medical_services,
-            size: 64,
-            color: AppColors.primary.withOpacity(0.3),
-          ),
-          const SizedBox(height: AppDimensions.marginMedium),
-          Text(
-            'Tratamientos',
-            style: AppTextStyles.h3.copyWith(
-              color: AppColors.textSecondary,
-            ),
-          ),
-          const SizedBox(height: AppDimensions.marginSmall),
-          Text(
-            'ID Historial Médico: $medicalHistoryId',
-            style: AppTextStyles.bodyMedium.copyWith(
-              color: AppColors.textSecondary,
-            ),
-          ),
-        ],
+    final repository = TreatmentRepositoryImpl(
+      remoteDataSource: TreatmentRemoteDataSourceImpl(
+        apiClient: ApiClient(),
       ),
+    );
+
+    return BlocProvider(
+      create: (context) => TreatmentBloc(
+        getTreatmentsByMedicalHistory: GetTreatmentsByMedicalHistory(repository),
+        createTreatment: CreateTreatment(repository),
+        deleteTreatment: DeleteTreatment(repository),
+      ),
+      child: TreatmentsList(medicalHistoryId: medicalHistoryId),
     );
   }
 
   Widget _buildVaccinesTab(int medicalHistoryId) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.vaccines,
-            size: 64,
-            color: AppColors.primary.withOpacity(0.3),
-          ),
-          const SizedBox(height: AppDimensions.marginMedium),
-          Text(
-            'Vacunas',
-            style: AppTextStyles.h3.copyWith(
-              color: AppColors.textSecondary,
-            ),
-          ),
-          const SizedBox(height: AppDimensions.marginSmall),
-          Text(
-            'ID Historial Médico: $medicalHistoryId',
-            style: AppTextStyles.bodyMedium.copyWith(
-              color: AppColors.textSecondary,
-            ),
-          ),
-        ],
+    final repository = VaccineRepositoryImpl(
+      remoteDataSource: VaccineRemoteDataSourceImpl(
+        apiClient: ApiClient(),
       ),
+    );
+
+    return BlocProvider(
+      create: (context) => VaccineBloc(
+        getVaccinesByMedicalHistory: GetVaccinesByMedicalHistory(repository),
+        createVaccine: CreateVaccine(repository),
+        deleteVaccine: DeleteVaccine(repository),
+      ),
+      child: VaccinesList(medicalHistoryId: medicalHistoryId),
     );
   }
 
   Widget _buildDiagnosesTab(int medicalHistoryId) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.health_and_safety,
-            size: 64,
-            color: AppColors.primary.withOpacity(0.3),
-          ),
-          const SizedBox(height: AppDimensions.marginMedium),
-          Text(
-            'Diagnósticos',
-            style: AppTextStyles.h3.copyWith(
-              color: AppColors.textSecondary,
-            ),
-          ),
-          const SizedBox(height: AppDimensions.marginSmall),
-          Text(
-            'ID Historial Médico: $medicalHistoryId',
-            style: AppTextStyles.bodyMedium.copyWith(
-              color: AppColors.textSecondary,
-            ),
-          ),
-        ],
+    final repository = DiseaseDiagnosisRepositoryImpl(
+      remoteDataSource: DiseaseDiagnosisRemoteDataSourceImpl(
+        apiClient: ApiClient(),
       ),
+    );
+
+    return BlocProvider(
+      create: (context) => DiseaseDiagnosisBloc(
+        getDiseaseDiagnosisByMedicalHistory: GetDiseaseDiagnosisByMedicalHistory(repository),
+        createDiseaseDiagnosis: CreateDiseaseDiagnosis(repository),
+        deleteDiseaseDiagnosis: DeleteDiseaseDiagnosis(repository),
+      ),
+      child: DiseaseDiagnosisList(medicalHistoryId: medicalHistoryId),
     );
   }
 }

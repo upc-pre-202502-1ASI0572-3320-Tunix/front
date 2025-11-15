@@ -60,7 +60,7 @@ class DashboardScreen extends StatelessWidget {
                 color: Colors.white,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
+                      color: Colors.black.withValues(alpha: 0.05),
                     blurRadius: 10,
                     offset: const Offset(0, 2),
                   ),
@@ -146,21 +146,21 @@ class DashboardScreen extends StatelessWidget {
                         label: 'Agregar Granja',
                         icon: Icons.add_location_alt,
                         onTap: () {
-                          // TODO: Implementar navegación
+                          // Implementar navegación
                         },
                       ),
                       _buildQuickActionButton(
                         label: 'Ver Sensores',
                         icon: Icons.device_hub,
                         onTap: () {
-                          // TODO: Implementar navegación
+                          // Implementar navegación
                         },
                       ),
                       _buildQuickActionButton(
                         label: 'Ver Reportes',
                         icon: Icons.analytics,
                         onTap: () {
-                          // TODO: Implementar navegación
+                          // Implementar navegación
                         },
                       ),
                     ],
@@ -198,7 +198,7 @@ class DashboardScreen extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(AppDimensions.paddingSmall),
                   decoration: BoxDecoration(
-                    color: color.withOpacity(0.1),
+                    color: color.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(AppDimensions.radiusMedium),
                   ),
                   child: Icon(

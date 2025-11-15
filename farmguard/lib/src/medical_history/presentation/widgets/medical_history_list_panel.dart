@@ -19,7 +19,7 @@ class _MedicalHistoryListPanelState extends State<MedicalHistoryListPanel> {
 
   @override
   void dispose() {
-    _searchController.dispose();
+    _searchController.dispose();  
     super.dispose();
   }
 
@@ -81,7 +81,7 @@ class _MedicalHistoryListPanelState extends State<MedicalHistoryListPanel> {
                   color: Colors.white,
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
+                        color: Colors.black.withValues(alpha: 0.05),
                       blurRadius: 8,
                       offset: const Offset(0, 2),
                     ),
@@ -146,7 +146,7 @@ class _MedicalHistoryListPanelState extends State<MedicalHistoryListPanel> {
                     Expanded(
                       flex: 1,
                       child: DropdownButtonFormField<String>(
-                        value: _selectedSpecie,
+                        initialValue: _selectedSpecie,
                         decoration: InputDecoration(
                           hintText: 'Filtrar por especie',
                           prefixIcon: const Icon(Icons.filter_list),
@@ -189,7 +189,7 @@ class _MedicalHistoryListPanelState extends State<MedicalHistoryListPanel> {
                   vertical: AppDimensions.marginMedium,
                 ),
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.1),
+                    color: AppColors.primary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(AppDimensions.radiusMedium),
                   border: Border.all(
                     color: AppColors.primary,
