@@ -24,7 +24,7 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.27.1'
+          flutter-version: '3.38.1'
           channel: 'stable'
 
       # Diagnostics: print flutter version and doctor (helps detectar si la CLI acepta --web-renderer)
@@ -33,7 +33,6 @@ jobs:
           flutter --version
           flutter doctor -v
           which flutter
-
       # Ensure web is enabled
       - name: Enable Flutter web
         run: flutter config --enable-web
