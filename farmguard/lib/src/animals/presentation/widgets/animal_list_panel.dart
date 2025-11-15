@@ -98,7 +98,9 @@ class _AnimalListPanelState extends State<AnimalListPanel> {
                   onTap: () {
                     showDialog(
                       context: context,
-                      builder: (context) => const AddAnimalDialog(),
+                      builder: (dialogContext) => AddAnimalDialog(
+                        animalBloc: context.read<AnimalBloc>(),
+                      ),
                     );
                   },
                   borderRadius: BorderRadius.circular(8),

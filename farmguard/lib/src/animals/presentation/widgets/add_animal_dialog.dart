@@ -13,7 +13,12 @@ import '../bloc/animal_bloc.dart';
 import '../bloc/animal_event.dart';
 
 class AddAnimalDialog extends StatefulWidget {
-  const AddAnimalDialog({super.key});
+  final AnimalBloc animalBloc;
+  
+  const AddAnimalDialog({
+    super.key,
+    required this.animalBloc,
+  });
 
   @override
   State<AddAnimalDialog> createState() => _AddAnimalDialogState();
@@ -162,22 +167,21 @@ class _AddAnimalDialogState extends State<AddAnimalDialog> {
       final response = await http.Response.fromStream(streamedResponse);
       
       if (response.statusCode >= 200 && response.statusCode < 300) {
+        // Recargar lista de animales usando el bloc recibido como parámetro
+        widget.animalBloc.add(LoadAnimals(inventoryId));
+        
+        // Esperar un breve momento para que se actualice la lista
+        await Future.delayed(const Duration(milliseconds: 500));
+        
         if (mounted) {
-          // Recargar lista de animales
-          context.read<AnimalBloc>().add(LoadAnimals(inventoryId));
-          
-          // Esperar un breve momento para que se actualice la lista
-          await Future.delayed(const Duration(milliseconds: 500));
-          
-          if (mounted) {
-            Navigator.of(context).pop();
-            CustomSnackbar.showSuccess(context, 'Animal agregado correctamente');
-          }
+          Navigator.of(context).pop();
+          CustomSnackbar.showSuccess(context, 'Animal agregado correctamente');
         }
       } else {
         throw Exception('Error al crear el animal: ${response.body}');
       }
     } catch (e) {
+      print('[ADD ANIMAL ERROR] $e');
       if (mounted) {
         CustomSnackbar.showError(
           context,
