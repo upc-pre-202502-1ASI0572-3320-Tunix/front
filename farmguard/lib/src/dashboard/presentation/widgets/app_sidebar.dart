@@ -7,9 +7,12 @@ import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../auth/presentation/bloc/auth_event.dart';
 import '../../../auth/presentation/screens/login_screen.dart';
 import '../../../animals/presentation/screens/animals_screen.dart';
+import '../screens/dashboard_screen.dart';
 
 class AppSidebar extends StatefulWidget {
-  const AppSidebar({super.key});
+  final String? currentRoute;
+  
+  const AppSidebar({super.key, this.currentRoute});
 
   @override
   State<AppSidebar> createState() => _AppSidebarState();
@@ -105,33 +108,54 @@ class _AppSidebarState extends State<AppSidebar> {
                     context,
                     icon: Icons.home_outlined,
                     label: 'Home',
-                    isSelected: true,
+                    isSelected: widget.currentRoute == 'home',
                     onTap: () {
-                      // Ya estamos en home
+                      // Navegar al home si no estamos ahí
+                      if (widget.currentRoute != 'home') {
+                        Navigator.of(context).pushReplacement(
+                          MaterialPageRoute(
+                            builder: (context) => const DashboardScreen(),
+                          ),
+                        );
+                      }
                     },
                   ),
                   _buildMenuItem(
                     context,
                     icon: Icons.pets_outlined,
                     label: 'Animales',
+                    isSelected: widget.currentRoute == 'animals',
                     onTap: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (context) => const AnimalsScreen(),
-                        ),
-                      );
+                      if (widget.currentRoute != 'animals') {
+                        Navigator.of(context).pushReplacement(
+                          MaterialPageRoute(
+                            builder: (context) => const AnimalsScreen(),
+                          ),
+                        );
+                      }
                     },
                   ),
                   _buildMenuItem(
                     context,
                     icon: Icons.medical_information_outlined,
                     label: 'Historial Médico',
+                    isSelected: widget.currentRoute == 'medical_history',
                     onTap: () {
-                      Navigator.of(context).pushNamed('/medical-history');
+                      if (widget.currentRoute != 'medical_history') {
+                        Navigator.of(context).pushNamed('/medical-history');
+                      }
                     },
                   ),
                 ],
               ),
+            ),
+            _buildMenuItem(
+              context,
+              icon: Icons.settings_outlined,
+              label: 'Configuración',
+              onTap: () {
+                Navigator.of(context).pushNamed('/settings');
+              },
             ),
             
             // Botón de cerrar sesión
@@ -281,6 +305,7 @@ class _AppSidebarState extends State<AppSidebar> {
                           ),
                         ),
                       ],
+                      
                     ],
                   )
                 : const Center(
