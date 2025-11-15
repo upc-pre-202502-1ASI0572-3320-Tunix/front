@@ -7,6 +7,7 @@ import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../auth/presentation/bloc/auth_event.dart';
 import '../../../auth/presentation/screens/login_screen.dart';
 import '../../../animals/presentation/screens/animals_screen.dart';
+import '../screens/dashboard_screen.dart';
 
 class AppSidebar extends StatefulWidget {
   final String? currentRoute;
@@ -111,7 +112,11 @@ class _AppSidebarState extends State<AppSidebar> {
                     onTap: () {
                       // Navegar al home si no estamos ahí
                       if (widget.currentRoute != 'home') {
-                        // Por ahora no hacemos nada, el dashboard está incompleto
+                        Navigator.of(context).pushReplacement(
+                          MaterialPageRoute(
+                            builder: (context) => const DashboardScreen(),
+                          ),
+                        );
                       }
                     },
                   ),
