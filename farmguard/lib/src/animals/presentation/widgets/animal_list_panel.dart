@@ -182,7 +182,7 @@ class _AnimalListPanelState extends State<AnimalListPanel> {
               // Filtro por especie
               Expanded(
                 child: DropdownButtonFormField<String>(
-                  value: _selectedSpecie,
+                  initialValue: _selectedSpecie,
                   hint: Text(
                     'Filtrar por especie',
                     style: AppTextStyles.bodyMedium.copyWith(

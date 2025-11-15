@@ -146,7 +146,7 @@ class _MedicalHistoryListPanelState extends State<MedicalHistoryListPanel> {
                     Expanded(
                       flex: 1,
                       child: DropdownButtonFormField<String>(
-                        value: _selectedSpecie,
+                        initialValue: _selectedSpecie,
                         decoration: InputDecoration(
                           hintText: 'Filtrar por especie',
                           prefixIcon: const Icon(Icons.filter_list),

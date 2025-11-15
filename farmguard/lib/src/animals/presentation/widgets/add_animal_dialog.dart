@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:http/http.dart' as http;
-import 'dart:html' as html;
+
+import 'package:file_picker/file_picker.dart';
+
 import 'dart:typed_data';
 import '../../../../core/config/app_config.dart';
 import '../../../shared/widgets/custom_snackbar.dart';
@@ -10,6 +12,8 @@ import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../auth/presentation/bloc/auth_state.dart';
 import '../bloc/animal_bloc.dart';
 import '../bloc/animal_event.dart';
+
+// --- (EL import 'dart:html' as html; FUE ELIMINADO) ---
 
 class AddAnimalDialog extends StatefulWidget {
   const AddAnimalDialog({super.key});
@@ -53,28 +57,44 @@ class _AddAnimalDialogState extends State<AddAnimalDialog> {
     super.dispose();
   }
 
+  //
+  // --- ⭐ ¡AQUÍ ESTÁ LA CORRECCIÓN! ⭐ ---
+  //
+  // Esta función ahora usa 'package:file_picker'
+  // y funciona en Android, iOS y Web.
+  //
   Future<void> _pickImage() async {
-    final html.FileUploadInputElement uploadInput = html.FileUploadInputElement();
-    uploadInput.accept = 'image/*';
-    uploadInput.click();
+    try {
+      // 1. Llama al selector de archivos (file_picker)
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.image, // Filtra solo para imágenes (como tu 'image/*')
+        withData: true,      // Pide que file_picker lea los bytes del archivo
+      );
 
-    uploadInput.onChange.listen((e) {
-      final files = uploadInput.files;
-      if (files != null && files.isNotEmpty) {
-        final file = files[0];
-        final reader = html.FileReader();
+      // 2. Comprueba si el usuario seleccionó un archivo
+      if (result != null && result.files.isNotEmpty) {
+        final file = result.files.first;
 
-        reader.onLoadEnd.listen((e) {
-          setState(() {
-            _selectedImageBytes = reader.result as Uint8List;
-            _selectedImageName = file.name;
-          });
+        // 3. Actualiza el estado con los bytes y el nombre
+        setState(() {
+          _selectedImageBytes = file.bytes;
+          _selectedImageName = file.name;
         });
-
-        reader.readAsArrayBuffer(file);
+      } else {
+        // El usuario canceló la selección
+        print('No se seleccionó ninguna imagen.');
       }
-    });
+    } catch (e) {
+      // Manejar cualquier error del file_picker
+      print('Error al seleccionar la imagen: $e');
+      if (mounted) {
+        CustomSnackbar.showError(context, 'Error al seleccionar la imagen: $e');
+      }
+    }
   }
+  //
+  // --- ⭐ FIN DE LA CORRECCIÓN ⭐ ---
+  //
 
   DateTime? _parseBirthDate(String value) {
     // Espera formato DD/MM/YYYY
@@ -133,6 +153,8 @@ class _AddAnimalDialogState extends State<AddAnimalDialog> {
       }
       
       // Agregar imagen si fue seleccionada
+      // (Esta lógica tuya ya era correcta y funciona
+      // perfectamente con la nueva función _pickImage)
       if (_selectedImageBytes != null && _selectedImageName != null) {
         request.files.add(
           http.MultipartFile.fromBytes(
@@ -216,7 +238,7 @@ class _AddAnimalDialogState extends State<AddAnimalDialog> {
                 
                 // Especie
                 DropdownButtonFormField<int>(
-                  value: _selectedSpecie,
+                  initialValue: _selectedSpecie,
                   decoration: InputDecoration(
                     labelText: 'Especie *',
                     border: OutlineInputBorder(
@@ -267,7 +289,7 @@ class _AddAnimalDialogState extends State<AddAnimalDialog> {
                 
                 // Sexo
                 DropdownButtonFormField<bool>(
-                  value: _sex,
+                  initialValue: _sex,
                   decoration: InputDecoration(
                     labelText: 'Sexo *',
                     border: OutlineInputBorder(
@@ -388,6 +410,7 @@ class _AddAnimalDialogState extends State<AddAnimalDialog> {
                 ),
                 const SizedBox(height: 8),
                 InkWell(
+                  // 'onTap' ahora llama a la nueva función _pickImage
                   onTap: _pickImage,
                   child: Container(
                     height: 150,
@@ -396,6 +419,7 @@ class _AddAnimalDialogState extends State<AddAnimalDialog> {
                       borderRadius: BorderRadius.circular(12),
                       color: Colors.grey[50],
                     ),
+                    // Esta lógica de UI ya era correcta
                     child: _selectedImageBytes != null
                         ? Stack(
                             children: [

@@ -7,7 +7,6 @@ import '../controllers/settings_controller.dart';
 import 'section_card.dart';
 
 import 'package:image_picker/image_picker.dart';
-import 'dart:typed_data';
 import 'dart:io' show File;           // ok en mobile; en web no se usa
 import 'package:flutter/foundation.dart';
 
