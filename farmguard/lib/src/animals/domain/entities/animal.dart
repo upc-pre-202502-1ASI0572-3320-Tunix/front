@@ -58,4 +58,35 @@ class Animal extends Equatable {
 
   // Helper para obtener sexo como texto
   String get sexText => sex ? 'Macho' : 'Hembra';
+
+  // copyWith para crear copias con datos actualizados
+  Animal copyWith({
+    int? id,
+    String? name,
+    String? idAnimal,
+    String? specie,
+    String? urlIot,
+    String? urlPhoto,
+    int? inventoryId,
+    String? location,
+    int? hearRate,
+    double? temperature,
+    bool? sex,
+    DateTime? birthDate,
+  }) {
+    return Animal(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      idAnimal: idAnimal ?? this.idAnimal,
+      specie: specie ?? this.specie,
+      urlIot: urlIot ?? this.urlIot,
+      urlPhoto: urlPhoto ?? this.urlPhoto,
+      inventoryId: inventoryId ?? this.inventoryId,
+      location: location ?? this.location,
+      hearRate: hearRate ?? this.hearRate,
+      temperature: temperature ?? this.temperature,
+      sex: sex ?? this.sex,
+      birthDate: birthDate ?? this.birthDate,
+    );
+  }
 }

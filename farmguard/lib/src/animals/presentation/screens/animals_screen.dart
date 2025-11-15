@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:http/http.dart' as http;
 import '../../../../core/theme/theme.dart';
 import '../../../../core/network/api_client.dart';
 import '../../../shared/widgets/custom_snackbar.dart';
@@ -7,7 +8,9 @@ import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../auth/presentation/bloc/auth_state.dart';
 import '../../../dashboard/presentation/widgets/app_sidebar.dart';
 import '../../data/datasources/animal_remote_data_source.dart';
+import '../../data/datasources/iot_remote_data_source.dart';
 import '../../data/repositories/animal_repository_impl.dart';
+import '../../data/services/iot_sync_service.dart';
 import '../../domain/usecases/get_animals_by_inventory.dart';
 import '../bloc/animal_bloc.dart';
 import '../bloc/animal_event.dart';
@@ -31,6 +34,11 @@ class AnimalsScreen extends StatelessWidget {
               remoteDataSource: AnimalRemoteDataSourceImpl(
                 apiClient: ApiClient(),
               ),
+            ),
+          ),
+          iotSyncService: IotSyncService(
+            remoteDataSource: IotRemoteDataSourceImpl(
+              httpClient: http.Client(),
             ),
           ),
         );
