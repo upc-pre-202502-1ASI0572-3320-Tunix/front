@@ -35,36 +35,35 @@ class FilterAnimals extends AnimalEvent {
   List<Object?> get props => [searchQuery, specieFilter];
 }
 
-/// Evento para iniciar sincronización IoT de un animal
-class StartIotSync extends AnimalEvent {
-  final int animalId;
-  final String iotUrl;
+/// Evento para conectar a SignalR telemetry hub
+class ConnectTelemetry extends AnimalEvent {
+  final String filter;
 
-  const StartIotSync({required this.animalId, required this.iotUrl});
+  const ConnectTelemetry({this.filter = 'collar'});
 
   @override
-  List<Object?> get props => [animalId, iotUrl];
+  List<Object?> get props => [filter];
 }
 
-/// Evento para detener sincronización IoT
-class StopIotSync extends AnimalEvent {
-  const StopIotSync();
+/// Evento para desconectar SignalR telemetry hub
+class DisconnectTelemetry extends AnimalEvent {
+  const DisconnectTelemetry();
 }
 
-/// Evento para actualizar datos IoT de un animal
-class UpdateAnimalIotData extends AnimalEvent {
-  final int animalId;
-  final int heartRate;
+/// Evento cuando se reciben datos de telemetría desde SignalR
+class TelemetryDataReceived extends AnimalEvent {
+  final String deviceId;
+  final int bpm;
   final double temperature;
   final String location;
 
-  const UpdateAnimalIotData({
-    required this.animalId,
-    required this.heartRate,
+  const TelemetryDataReceived({
+    required this.deviceId,
+    required this.bpm,
     required this.temperature,
     required this.location,
   });
 
   @override
-  List<Object?> get props => [animalId, heartRate, temperature, location];
+  List<Object?> get props => [deviceId, bpm, temperature, location];
 }

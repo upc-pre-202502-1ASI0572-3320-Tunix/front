@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:http/http.dart' as http;
 import '../../../../core/theme/theme.dart';
 import '../../../../core/network/api_client.dart';
 import '../../../dashboard/presentation/widgets/app_sidebar.dart';
 import '../../../animals/data/datasources/animal_remote_data_source.dart';
-import '../../../animals/data/datasources/iot_remote_data_source.dart';
+import '../../../animals/data/datasources/telemetry_signalr_service.dart';
 import '../../../animals/data/repositories/animal_repository_impl.dart';
-import '../../../animals/data/services/iot_sync_service.dart';
 import '../../../animals/domain/usecases/get_animals_by_inventory.dart';
 import '../../../animals/presentation/bloc/animal_bloc.dart';
 import '../../../animals/presentation/bloc/animal_state.dart';
@@ -34,15 +32,14 @@ class MedicalHistoryScreen extends StatelessWidget {
               ),
             ),
           ),
-          iotSyncService: IotSyncService(
-            remoteDataSource: IotRemoteDataSourceImpl(
-              httpClient: http.Client(),
-            ),
-          ),
+          telemetryService: TelemetrySignalRService(),
         );
         
         // Cargar animales automáticamente
         animalBloc.add(LoadAnimals(inventoryId));
+        
+        // Conectar a telemetría en tiempo real
+        animalBloc.add(const ConnectTelemetry(filter: 'collar'));
         
         return animalBloc;
       },

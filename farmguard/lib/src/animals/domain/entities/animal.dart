@@ -5,7 +5,7 @@ class Animal extends Equatable {
   final String name;
   final String idAnimal;
   final String specie;
-  final String urlIot;
+  final String deviceId;
   final String urlPhoto;
   final int inventoryId;
   final String location;
@@ -19,7 +19,7 @@ class Animal extends Equatable {
     required this.name,
     required this.idAnimal,
     required this.specie,
-    required this.urlIot,
+    required this.deviceId,
     required this.urlPhoto,
     required this.inventoryId,
     required this.location,
@@ -35,7 +35,7 @@ class Animal extends Equatable {
         name,
         idAnimal,
         specie,
-        urlIot,
+        deviceId,
         urlPhoto,
         inventoryId,
         location,
@@ -65,7 +65,7 @@ class Animal extends Equatable {
     String? name,
     String? idAnimal,
     String? specie,
-    String? urlIot,
+    String? deviceId,
     String? urlPhoto,
     int? inventoryId,
     String? location,
@@ -79,7 +79,7 @@ class Animal extends Equatable {
       name: name ?? this.name,
       idAnimal: idAnimal ?? this.idAnimal,
       specie: specie ?? this.specie,
-      urlIot: urlIot ?? this.urlIot,
+      deviceId: deviceId ?? this.deviceId,
       urlPhoto: urlPhoto ?? this.urlPhoto,
       inventoryId: inventoryId ?? this.inventoryId,
       location: location ?? this.location,

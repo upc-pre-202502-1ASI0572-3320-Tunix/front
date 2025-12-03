@@ -30,7 +30,7 @@ class AddAnimalDialog extends StatefulWidget {
 class _AddAnimalDialogState extends State<AddAnimalDialog> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
-  final _urlIotController = TextEditingController();
+  final _deviceIdController = TextEditingController();
   final _locationController = TextEditingController();
   final _hearRateController = TextEditingController();
   final _temperatureController = TextEditingController();
@@ -54,7 +54,7 @@ class _AddAnimalDialogState extends State<AddAnimalDialog> {
   @override
   void dispose() {
     _nameController.dispose();
-    _urlIotController.dispose();
+    _deviceIdController.dispose();
     _locationController.dispose();
     _hearRateController.dispose();
     _temperatureController.dispose();
@@ -151,7 +151,8 @@ class _AddAnimalDialogState extends State<AddAnimalDialog> {
       // Agregar campos de texto
       request.fields['name'] = _nameController.text;
       request.fields['specie'] = _selectedSpecie.toString();
-      request.fields['urlIot'] = _urlIotController.text;
+      // Backend aún requiere urlIot, enviamos el deviceId como urlIot
+      request.fields['urlIot'] = _deviceIdController.text;
       request.fields['location'] = _locationController.text;
       
       // Usar valores por defecto si los campos están vacíos (se actualizarán desde IoT)
@@ -411,22 +412,19 @@ class _AddAnimalDialogState extends State<AddAnimalDialog> {
                 ),
                 const SizedBox(height: 16),
                 
-                // URL IoT
+                // Device ID
                 TextFormField(
-                  controller: _urlIotController,
+                  controller: _deviceIdController,
                   decoration: InputDecoration(
-                    labelText: 'URL IoT *',
-                    hintText: 'https://...',
+                    labelText: 'Device ID *',
+                    hintText: 'ID del dispositivo IoT',
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'Por favor ingresa la URL IoT';
-                    }
-                    if (!value.startsWith('http://') && !value.startsWith('https://')) {
-                      return 'La URL debe comenzar con http:// o https://';
+                      return 'Por favor ingresa el Device ID';
                     }
                     return null;
                   },
