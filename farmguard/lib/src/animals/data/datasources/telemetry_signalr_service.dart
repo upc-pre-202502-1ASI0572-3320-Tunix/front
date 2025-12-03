@@ -55,29 +55,54 @@ class TelemetryData {
 }
 
 class TelemetrySignalRService {
-  HubConnection? _hubConnection;
+  Map<String, HubConnection> _hubConnections = {}; // Múltiples conexiones por filtro
   final _telemetryController = StreamController<TelemetryData>.broadcast();
   
   // Stream público para que otros componentes se suscriban
   Stream<TelemetryData> get telemetryStream => _telemetryController.stream;
   
-  bool get isConnected => _hubConnection?.state == HubConnectionState.Connected;
+  bool get isConnected => _hubConnections.values.any((conn) => conn.state == HubConnectionState.Connected);
 
   Future<void> connect({String filter = 'collar'}) async {
-    if (_hubConnection != null && isConnected) {
-      return;
-    }
+    try {
+      // Limpiar el filtro: si es una lista separada por comas, mantenerla
+      // Si contiene URLs o datos inválidos, filtrar solo los valores válidos (sin /)
+      final filters = filter
+          .split(',')
+          .map((f) => f.trim())
+          .where((f) => f.isNotEmpty && !f.contains('/')) // Rechazar URLs y valores vacíos
+          .toList();
+      
+      final finalFilters = filters.isNotEmpty ? filters : ['collar'];
 
+      print('[SignalR] 🔗 Conectando a ${finalFilters.length} filtro(s): $finalFilters');
+      
+      // Crear una conexión para cada filtro
+      for (final singleFilter in finalFilters) {
+        if (_hubConnections.containsKey(singleFilter) && 
+            _hubConnections[singleFilter]!.state == HubConnectionState.Connected) {
+          print('[SignalR] ✅ Ya conectado a "$singleFilter", saltando...');
+          continue;
+        }
+
+        print('[SignalR] 🔗 Conectando a filtro: "$singleFilter"');
+        await _connectToFilter(singleFilter);
+      }
+    } catch (e) {
+      print('[SignalR ERROR] Failed to connect: $e');
+    }
+  }
+
+  Future<void> _connectToFilter(String filter) async {
     try {
       // URL completa sin /api/ ya que SignalR usa su propia ruta
-      // Nota: Asegúrate que esta URL sea accesible desde el dispositivo/emulador
       final hubUrl = 'https://www.ibrayan.dev/hubs/telemetry?filtro=$filter';
 
       // Obtener token de autenticación si existe
       final token = await TokenStorage.getToken();
       
-      // Configurar conexión SignalR
-      _hubConnection = HubConnectionBuilder()
+      // Configurar conexión SignalR para este filtro
+      final hubConnection = HubConnectionBuilder()
           .withUrl(
             hubUrl,
             options: HttpConnectionOptions(
@@ -90,9 +115,9 @@ class TelemetrySignalRService {
           .build();
 
       // Registrar handlers de eventos de conexión
-      _hubConnection!.onclose(({error}) => print('[SignalR] Conexión cerrada: $error'));
-      _hubConnection!.onreconnecting(({error}) => print('[SignalR] Reconectando...'));
-      _hubConnection!.onreconnected(({connectionId}) => print('[SignalR] Reconectado'));
+      hubConnection.onclose(({error}) => print('[SignalR] Conexión cerrada ($filter): $error'));
+      hubConnection.onreconnecting(({error}) => print('[SignalR] Reconectando ($filter)...'));
+      hubConnection.onreconnected(({connectionId}) => print('[SignalR] Reconectado ($filter)'));
 
       // Registrar handlers para múltiples nombres de eventos
       // Esto cubre todas las posibilidades que vimos en el código de Vue
@@ -107,44 +132,63 @@ class TelemetrySignalRService {
       ];
 
       for (var name in eventNames) {
-        _hubConnection!.on(name, _handleTelemetryData);
+        hubConnection.on(name, (arguments) => _handleTelemetryData(arguments, filter));
       }
 
       // Iniciar conexión
       print('[SignalR] Intentando conectar a $hubUrl');
-      await _hubConnection!.start();
-      print('[SignalR] Conectado exitosamente');
+      await hubConnection.start();
+      
+      // Almacenar la conexión
+      _hubConnections[filter] = hubConnection;
+      
+      print('[SignalR] ✅ Conectado exitosamente a "$filter"');
+      print('[SignalR] Estado: ${hubConnection.state}');
+      print('[SignalR] Connection ID: ${hubConnection.connectionId}');
       
     } catch (e) {
-      print('[SignalR ERROR] Failed to connect: $e');
-      // No relanzamos para no romper la app si falla la telemetría, 
-      // pero podrías hacerlo si es crítica.
+      print('[SignalR ERROR] Failed to connect to "$filter": $e');
     }
   }
 
-  void _handleTelemetryData(List<Object?>? arguments) {
+  void _handleTelemetryData(List<Object?>? arguments, String filter) {
     try {
-      if (arguments == null || arguments.isEmpty) return;
+      print('[SignalR] === HANDLER INVOCADO (filtro: $filter) ===');
+      if (arguments == null || arguments.isEmpty) {
+        print('[SignalR] Arguments es null o vacío');
+        return;
+      }
 
+      print("[SignalR] Número de argumentos: ${arguments.length}");
       print("[SignalR] Data cruda recibida: $arguments");
+      print("[SignalR] Tipo de datos: ${arguments.map((a) => a.runtimeType).toList()}");
 
       var rawData = arguments[0];
+      print("[SignalR] Raw data type: ${rawData.runtimeType}");
+      
       Map<String, dynamic>? jsonData;
 
       // CASO 1: La data llega como un String JSON (común en algunas configuraciones de SignalR)
       if (rawData is String) {
+        print('[SignalR] Raw data es String, decodificando...');
         try {
           jsonData = jsonDecode(rawData);
+          print('[SignalR] JSON decodificado: $jsonData');
         } catch (e) {
           print("[SignalR] Error decodificando string JSON: $e");
         }
       } 
       // CASO 2: La data llega ya como Objeto/Mapa
       else if (rawData is Map) {
+        print('[SignalR] Raw data es Map, usando directamente...');
         jsonData = Map<String, dynamic>.from(rawData);
+        print('[SignalR] Map convertido: $jsonData');
+      } else {
+        print('[SignalR] Raw data no es String ni Map, es: ${rawData.runtimeType}');
       }
 
       if (jsonData != null) {
+        print('[SignalR] JSON data no es null, procesando...');
         // Verificar si el JSON tiene una propiedad raíz que envuelve la data (unwrap)
         // Ejemplo: { "telemetry": { "temp": 30... } }
         if (jsonData.keys.length == 1 && jsonData.values.first is Map) {
@@ -153,7 +197,7 @@ class TelemetrySignalRService {
         }
 
         final telemetry = TelemetryData.fromJson(jsonData);
-        print("[SignalR] Procesado con éxito: $telemetry");
+        print("[SignalR] ✅ Procesado con éxito: $telemetry");
         _telemetryController.add(telemetry);
       } else {
         print("[SignalR] No se pudo interpretar la data como Mapa ni como String JSON");
@@ -167,10 +211,12 @@ class TelemetrySignalRService {
 
   Future<void> disconnect() async {
     try {
-      if (_hubConnection != null) {
-        await _hubConnection!.stop();
-        _hubConnection = null;
+      print('[SignalR] Desconectando ${_hubConnections.length} conexión(es)...');
+      for (final entry in _hubConnections.entries) {
+        await entry.value.stop();
+        print('[SignalR] ✅ Desconectado: ${entry.key}');
       }
+      _hubConnections.clear();
     } catch (e) {
       print('[SignalR] Error al desconectar: $e');
     }

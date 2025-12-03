@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/theme/theme.dart';
 import '../../../../core/network/api_client.dart';
@@ -38,8 +39,7 @@ class MedicalHistoryScreen extends StatelessWidget {
         // Cargar animales automáticamente
         animalBloc.add(LoadAnimals(inventoryId));
         
-        // Conectar a telemetría en tiempo real
-        animalBloc.add(const ConnectTelemetry(filter: 'collar'));
+        // Conectar a telemetría con todos los collares (listener en la vista)
         
         return animalBloc;
       },
@@ -68,6 +68,20 @@ class MedicalHistoryView extends StatelessWidget {
                       backgroundColor: AppColors.error,
                     ),
                   );
+                }
+                // Conectar a telemetría cuando los animales se cargen
+                if (state is AnimalLoaded && state.animals.isNotEmpty) {
+                  // Extraer todos los deviceIds (collares)
+                  final deviceIds = state.animals
+                      .map((a) => a.deviceId)
+                      .where((id) => id.isNotEmpty)
+                      .toList();
+                  
+                  if (deviceIds.isNotEmpty) {
+                    final filterString = deviceIds.join(',');
+                    debugPrint('[MedicalHistoryScreen] 🔗 Conectando con dispositivos: $filterString');
+                    context.read<AnimalBloc>().add(ConnectTelemetry(filter: filterString));
+                  }
                 }
               },
               builder: (context, state) {

@@ -104,17 +104,27 @@ class AnimalBloc extends Bloc<AnimalEvent, AnimalState> {
     try {
       debugPrint('[AnimalBloc] Conectando a SignalR con filtro: "${event.filter}"');
       await telemetryService.connect(filter: event.filter);
+      debugPrint('[AnimalBloc] Conexión completada, suscribiéndose al stream...');
 
       _telemetrySubscription?.cancel();
-      _telemetrySubscription = telemetryService.telemetryStream.listen((telemetryData) {
-        debugPrint('[AnimalBloc] STREAM RECIBIDO: $telemetryData');
-        add(TelemetryDataReceived(
-          deviceId: telemetryData.deviceId,
-          bpm: telemetryData.bpm,
-          temperature: telemetryData.temperature,
-          location: telemetryData.location,
-        ));
-      });
+      _telemetrySubscription = telemetryService.telemetryStream.listen(
+        (telemetryData) {
+          debugPrint('[AnimalBloc] ✅ STREAM RECIBIDO: $telemetryData');
+          add(TelemetryDataReceived(
+            deviceId: telemetryData.deviceId,
+            bpm: telemetryData.bpm,
+            temperature: telemetryData.temperature,
+            location: telemetryData.location,
+          ));
+        },
+        onError: (error) {
+          debugPrint('[AnimalBloc] ❌ ERROR en stream: $error');
+        },
+        onDone: () {
+          debugPrint('[AnimalBloc] ⚠️ Stream terminado');
+        },
+      );
+      debugPrint('[AnimalBloc] Suscripción al stream completada');
     } catch (e) {
       debugPrint('[AnimalBloc] Error crítico en conexión SignalR: $e');
     }
@@ -133,10 +143,12 @@ class AnimalBloc extends Bloc<AnimalEvent, AnimalState> {
     TelemetryDataReceived event,
     Emitter<AnimalState> emit,
   ) {
-    debugPrint(' [AnimalBloc] Procesando actualización para DeviceID: "${event.deviceId}"');
+    debugPrint('[AnimalBloc] 📊 Procesando actualización para DeviceID: "${event.deviceId}"');
+    debugPrint('[AnimalBloc] 📊 BPM: ${event.bpm}, Temp: ${event.temperature}°C, Location: ${event.location}');
     
     if (state is AnimalLoaded) {
       final currentState = state as AnimalLoaded;
+      debugPrint('[AnimalBloc] Estado actual es AnimalLoaded con ${currentState.animals.length} animales');
 
       // Buscamos ignorando mayúsculas/minúsculas y espacios
       final index = currentState.animals.indexWhere((a) => 
@@ -144,36 +156,48 @@ class AnimalBloc extends Bloc<AnimalEvent, AnimalState> {
       );
 
       if (index != -1) {
-        debugPrint('   Animal encontrado: ${currentState.animals[index].name}. Actualizando UI...');
-        
         final targetAnimal = currentState.animals[index];
+        debugPrint('[AnimalBloc] ✅ Animal encontrado: ${targetAnimal.name}. Actualizando UI...');
+        
         final updatedAnimal = targetAnimal.copyWith(
           hearRate: event.bpm,
           temperature: event.temperature,
           location: event.location,
         );
 
+        // Crear nuevas listas para asegurar que Equatable detecte el cambio
         final updatedAnimals = List<Animal>.from(currentState.animals);
         updatedAnimals[index] = updatedAnimal;
+        debugPrint('[AnimalBloc] 📝 Lista de animales actualizada. Nuevo BPM: ${updatedAnimal.hearRate}');
 
-        // Actualizar listas filtradas y selección
+        // Actualizar listas filtradas
         final updatedFiltered = currentState.filteredAnimals.map((a) => 
           a.id == updatedAnimal.id ? updatedAnimal : a
         ).toList();
+        debugPrint('[AnimalBloc] 📝 Lista filtrada actualizada: ${updatedFiltered.length} animales');
 
-        final updatedSelected = currentState.selectedAnimal?.id == updatedAnimal.id 
-            ? updatedAnimal 
-            : currentState.selectedAnimal;
+        // Siempre actualizar selectedAnimal si coincide
+        Animal? updatedSelected = currentState.selectedAnimal;
+        if (currentState.selectedAnimal?.id == updatedAnimal.id) {
+          updatedSelected = updatedAnimal;
+          debugPrint('[AnimalBloc] 🎯 Animal seleccionado actualizado: ${updatedAnimal.name} (BPM: ${updatedAnimal.hearRate})');
+        }
 
-        emit(currentState.copyWith(
+        debugPrint('[AnimalBloc] 🚀 Emitiendo nuevo estado...');
+        emit(AnimalLoaded(
           animals: updatedAnimals,
           filteredAnimals: updatedFiltered,
           selectedAnimal: updatedSelected,
+          searchQuery: currentState.searchQuery,
+          specieFilter: currentState.specieFilter,
         ));
+        debugPrint('[AnimalBloc] ✅ Estado emitido exitosamente');
       } else {
-        debugPrint('   No se encontró ningún animal con DeviceID "${event.deviceId}" en la lista cargada.');
-        debugPrint('   IDs disponibles: ${currentState.animals.map((a) => a.deviceId).toList()}');
+        debugPrint('[AnimalBloc] ❌ No se encontró animal con DeviceID "${event.deviceId}"');
+        debugPrint('[AnimalBloc] IDs disponibles: ${currentState.animals.map((a) => a.deviceId).toList()}');
       }
+    } else {
+      debugPrint('[AnimalBloc] ⚠️ Estado NO es AnimalLoaded, es: ${state.runtimeType}');
     }
   }
 

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/theme/theme.dart';
 import '../../../../core/network/api_client.dart';
@@ -41,11 +42,8 @@ class AnimalsScreen extends StatelessWidget {
         // 1. Cargar la lista de animales
         animalBloc.add(LoadAnimals(inventoryId));
         
-        // 2. Conectar a telemetría
-        // CAMBIO TEMPORAL: Usamos 'collar-001' explícitamente para probar tu vaca FORHONOR
-        // Si esto funciona, significa que el backend filtra estrictamente por ID.
-        debugPrint('Iniciando conexión con filtro de prueba: collar-001');
-        animalBloc.add(const ConnectTelemetry(filter: 'collar-001'));
+        // 2. Conectar a telemetría después de cargar (listener)
+        // Extraeremos todos los deviceId de los animales cargados
         
         return animalBloc;
       },
@@ -72,6 +70,20 @@ class AnimalsView extends StatelessWidget {
               listener: (context, state) {
                 if (state is AnimalError) {
                   CustomSnackbar.showError(context, state.message);
+                }
+                // Conectar a telemetría cuando los animales se cargen
+                if (state is AnimalLoaded && state.animals.isNotEmpty) {
+                  // Extraer todos los deviceIds (collares)
+                  final deviceIds = state.animals
+                      .map((a) => a.deviceId)
+                      .where((id) => id.isNotEmpty)
+                      .toList();
+                  
+                  if (deviceIds.isNotEmpty) {
+                    final filterString = deviceIds.join(',');
+                    debugPrint('[AnimalsScreen] 🔗 Conectando con dispositivos: $filterString');
+                    context.read<AnimalBloc>().add(ConnectTelemetry(filter: filterString));
+                  }
                 }
               },
               builder: (context, state) {
