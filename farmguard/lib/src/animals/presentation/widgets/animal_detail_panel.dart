@@ -25,6 +25,58 @@ class AnimalDetailPanel extends StatefulWidget {
 }
 
 class _AnimalDetailPanelState extends State<AnimalDetailPanel> {
+  @override
+  void initState() {
+    super.initState();
+    // Iniciar sincronización IoT cuando se carga el panel
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _startIotSync();
+      }
+    });
+  }
+
+  @override
+  void didUpdateWidget(AnimalDetailPanel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Si cambia el animal, reiniciar sincronización
+    if (oldWidget.animal.id != widget.animal.id) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _startIotSync();
+        }
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    // Detener sincronización al salir
+    try {
+      if (mounted) {
+        context.read<AnimalBloc>().add(const StopIotSync());
+      }
+    } catch (e) {
+      debugPrint('Error deteniendo IoT sync: $e');
+    }
+    super.dispose();
+  }
+
+  void _startIotSync() {
+    try {
+      // Iniciar sincronización IoT con la URL del animal
+      context.read<AnimalBloc>().add(
+            StartIotSync(
+              animalId: widget.animal.id,
+              iotUrl: widget.animal.urlIot,
+            ),
+          );
+    } catch (e) {
+      // Silenciar errores de lectura del contexto
+      debugPrint('Error iniciando IoT sync: $e');
+    }
+  }
+
   // URL temporal de prueba mientras se arregla CORS en Firebase
   String _getImageUrl() {
     if (widget.animal.urlPhoto.contains('firebasestorage.googleapis.com')) {

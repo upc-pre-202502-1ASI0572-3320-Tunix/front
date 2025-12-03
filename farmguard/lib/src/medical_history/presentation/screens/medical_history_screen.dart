@@ -53,11 +53,30 @@ class MedicalHistoryView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+    final isMobile = size.width < 768;
+
     return Scaffold(
       backgroundColor: AppColors.background,
+      drawer: isMobile
+          ? Drawer(
+              child: Container(
+                color: AppColors.background,
+                child: const AppSidebar(currentRoute: 'medical_history'),
+              ),
+            )
+          : null,
+      appBar: isMobile
+          ? AppBar(
+              backgroundColor: AppColors.primary,
+              elevation: 0,
+              title: const Text('Historial Médico'),
+            )
+          : null,
       body: Row(
         children: [
-          const AppSidebar(currentRoute: 'medical_history'),
+          // Sidebar - solo en desktop
+          if (!isMobile) const AppSidebar(currentRoute: 'medical_history'),
           Expanded(
             child: BlocConsumer<AnimalBloc, AnimalState>(
               listener: (context, state) {
@@ -109,10 +128,15 @@ class MedicalHistoryView extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: AppDimensions.marginSmall),
-                        Text(
-                          state.message,
-                          style: AppTextStyles.bodyMedium,
-                          textAlign: TextAlign.center,
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AppDimensions.paddingMedium,
+                          ),
+                          child: Text(
+                            state.message,
+                            style: AppTextStyles.bodyMedium,
+                            textAlign: TextAlign.center,
+                          ),
                         ),
                       ],
                     ),
