@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:http/http.dart' as http;
 import '../../../../core/theme/theme.dart';
 import '../../../../core/network/api_client.dart';
 import '../../../shared/widgets/custom_snackbar.dart';
@@ -8,9 +8,8 @@ import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../auth/presentation/bloc/auth_state.dart';
 import '../../../dashboard/presentation/widgets/app_sidebar.dart';
 import '../../data/datasources/animal_remote_data_source.dart';
-import '../../data/datasources/iot_remote_data_source.dart';
+import '../../data/datasources/telemetry_signalr_service.dart';
 import '../../data/repositories/animal_repository_impl.dart';
-import '../../data/services/iot_sync_service.dart';
 import '../../domain/usecases/get_animals_by_inventory.dart';
 import '../../domain/entities/animal.dart';
 import '../bloc/animal_bloc.dart';
@@ -38,15 +37,14 @@ class AnimalsScreen extends StatelessWidget {
               ),
             ),
           ),
-          iotSyncService: IotSyncService(
-            remoteDataSource: IotRemoteDataSourceImpl(
-              httpClient: http.Client(),
-            ),
-          ),
+          telemetryService: TelemetrySignalRService(),
         );
         
-        // Cargar animales automáticamente
+        // 1. Cargar la lista de animales
         animalBloc.add(LoadAnimals(inventoryId));
+        
+        // 2. Conectar a telemetría después de cargar (listener)
+        // Extraeremos todos los deviceId de los animales cargados
         
         return animalBloc;
       },
@@ -122,6 +120,20 @@ class _AnimalsViewState extends State<AnimalsView> {
               listener: (context, state) {
                 if (state is AnimalError) {
                   CustomSnackbar.showError(context, state.message);
+                }
+                // Conectar a telemetría cuando los animales se cargen
+                if (state is AnimalLoaded && state.animals.isNotEmpty) {
+                  // Extraer todos los deviceIds (collares)
+                  final deviceIds = state.animals
+                      .map((a) => a.deviceId)
+                      .where((id) => id.isNotEmpty)
+                      .toList();
+                  
+                  if (deviceIds.isNotEmpty) {
+                    final filterString = deviceIds.join(',');
+                    debugPrint('[AnimalsScreen] 🔗 Conectando con dispositivos: $filterString');
+                    context.read<AnimalBloc>().add(ConnectTelemetry(filter: filterString));
+                  }
                 }
               },
               builder: (context, state) {
@@ -228,81 +240,39 @@ class _AnimalsViewState extends State<AnimalsView> {
                     );
                   }
 
-                  // Layout responsivo
-                  if (isMobile) {
-                    // Móvil: solo lista, detalles en Bottom Sheet
-                    return AnimalListPanel(
-                      animals: state.filteredAnimals,
-                      selectedAnimalId: state.selectedAnimal?.id,
-                      onShowDetails: _showAnimalDetailsBottomSheet,
-                    );
-                  } else if (isTablet) {
-                    // Tablet: row con flex ajustado
-                    return Row(
-                      children: [
-                        // Panel izquierdo - Lista de animales (60%)
-                        Expanded(
-                          flex: 6,
-                          child: AnimalListPanel(
-                            animals: state.filteredAnimals,
-                            selectedAnimalId: state.selectedAnimal?.id,
-                          ),
+                  return Row(
+                    children: [
+                      // Panel izquierdo - Lista de animales (70%)
+                      Expanded(
+                        flex: 7,
+                        child: AnimalListPanel(
+                          animals: state.filteredAnimals,
+                          selectedAnimalId: state.selectedAnimal?.id,
                         ),
-                        // Divisor vertical
-                        Container(
-                          width: 1,
-                          color: AppColors.divider,
-                        ),
-                        // Panel derecho - Detalle del animal (40%)
-                        Expanded(
-                          flex: 4,
-                          child: state.selectedAnimal != null
-                              ? AnimalDetailPanel(animal: state.selectedAnimal!)
-                              : Center(
-                                  child: Text(
-                                    'Selecciona un animal',
-                                    style: AppTextStyles.bodyLarge.copyWith(
-                                      color: AppColors.textSecondary,
-                                    ),
+                      ),
+                      
+                      // Divisor vertical
+                      Container(
+                        width: 1,
+                        color: AppColors.divider,
+                      ),
+                      
+                      // Panel derecho - Detalle del animal (30%)
+                      Expanded(
+                        flex: 3,
+                        child: state.selectedAnimal != null
+                            ? AnimalDetailPanel(animal: state.selectedAnimal!)
+                            : Center(
+                                child: Text(
+                                  'Selecciona un animal',
+                                  style: AppTextStyles.bodyLarge.copyWith(
+                                    color: AppColors.textSecondary,
                                   ),
                                 ),
-                        ),
-                      ],
-                    );
-                  } else {
-                    // Desktop: row con flex original (70/30)
-                    return Row(
-                      children: [
-                        // Panel izquierdo - Lista de animales (70%)
-                        Expanded(
-                          flex: 7,
-                          child: AnimalListPanel(
-                            animals: state.filteredAnimals,
-                            selectedAnimalId: state.selectedAnimal?.id,
-                          ),
-                        ),
-                        // Divisor vertical
-                        Container(
-                          width: 1,
-                          color: AppColors.divider,
-                        ),
-                        // Panel derecho - Detalle del animal (30%)
-                        Expanded(
-                          flex: 3,
-                          child: state.selectedAnimal != null
-                              ? AnimalDetailPanel(animal: state.selectedAnimal!)
-                              : Center(
-                                  child: Text(
-                                    'Selecciona un animal',
-                                    style: AppTextStyles.bodyLarge.copyWith(
-                                      color: AppColors.textSecondary,
-                                    ),
-                                  ),
-                                ),
-                        ),
-                      ],
-                    );
-                  }
+                              ),
+                      ),
+                    ],
+                  );
                 }
 
                 return const SizedBox.shrink();

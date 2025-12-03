@@ -59,6 +59,10 @@ dependencies:
   # Image Picker
   image_picker: ^1.0.7
   file_picker: ^10.3.6
+  
+  # SignalR for real-time telemetry
+  signalr_netcore: ^1.3.7
+  url_launcher: ^6.3.2
 
 dev_dependencies:
   flutter_test:

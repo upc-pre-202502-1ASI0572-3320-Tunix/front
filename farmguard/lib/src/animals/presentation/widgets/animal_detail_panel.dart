@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/theme/theme.dart';
 import '../../../../core/network/api_client.dart';
 import '../../../shared/widgets/custom_snackbar.dart';
@@ -9,6 +10,7 @@ import '../../../auth/presentation/bloc/auth_state.dart';
 import '../../domain/entities/animal.dart';
 import '../bloc/animal_bloc.dart';
 import '../bloc/animal_event.dart';
+import 'add_animal_dialog.dart';
 
 class AnimalDetailPanel extends StatefulWidget {
   final Animal animal;
@@ -259,11 +261,12 @@ class _AnimalDetailPanelState extends State<AnimalDetailPanel> {
                     icon: Icons.location_on,
                     label: 'Coordenadas',
                     value: widget.animal.location,
+                    isLocation: true,
                   ),
                   _InfoRowCentered(
                     icon: Icons.router,
-                    label: 'URL IoT', 
-                    value: widget.animal.urlIot,
+                    label: 'Device ID', 
+                    value: widget.animal.deviceId,
                   ),
                   
                   const SizedBox(height: AppDimensions.marginLarge),
@@ -301,7 +304,13 @@ class _AnimalDetailPanelState extends State<AnimalDetailPanel> {
                       Expanded(
                         child: OutlinedButton(
                           onPressed: () {
-                            // Implementar edición de animal
+                            showDialog(
+                              context: context,
+                              builder: (dialogContext) => AddAnimalDialog(
+                                animalBloc: context.read<AnimalBloc>(),
+                                animalToEdit: widget.animal,
+                              ),
+                            );
                           },
                           style: OutlinedButton.styleFrom(
                             foregroundColor: AppColors.primary,
@@ -493,12 +502,54 @@ class _InfoRowCentered extends StatelessWidget {
   final IconData icon;
   final String label;
   final String value;
+  final bool isLocation;
 
   const _InfoRowCentered({
     required this.icon,
     required this.label,
     required this.value,
+    this.isLocation = false,
   });
+
+  Future<void> _openGoogleMaps(BuildContext context, String location) async {
+    final parts = location.trim().split(',');
+    if (parts.length != 2) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Formato de coordenadas inválido')),
+      );
+      return;
+    }
+
+    final lat = parts[0].trim();
+    final lng = parts[1].trim();
+
+    if (double.tryParse(lat) == null || double.tryParse(lng) == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Coordenadas inválidas')),
+      );
+      return;
+    }
+
+    final url = Uri.parse('https://www.google.com/maps/search/?api=1&query=$lat,$lng');
+
+    try {
+      if (await canLaunchUrl(url)) {
+        await launchUrl(url, mode: LaunchMode.externalApplication);
+      } else {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('No se pudo abrir Google Maps')),
+          );
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al abrir Google Maps: $e')),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -534,6 +585,12 @@ class _InfoRowCentered extends StatelessWidget {
               ],
             ),
           ),
+          if (isLocation)
+            IconButton(
+              icon: const Icon(Icons.map, color: Colors.blue),
+              tooltip: 'Ver en Google Maps',
+              onPressed: () => _openGoogleMaps(context, value),
+            ),
         ],
       ),
     );
