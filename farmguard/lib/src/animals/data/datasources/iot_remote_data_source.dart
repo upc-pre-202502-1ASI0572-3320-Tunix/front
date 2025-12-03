@@ -2,9 +2,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../models/iot_data_model.dart';
 
-/// Data source para obtener datos desde dispositivos IoT
 abstract class IotRemoteDataSource {
-  /// Obtiene los datos desde la URL IoT
   Future<List<IotDataModel>> getIotData(String iotUrl);
 }
 
@@ -16,7 +14,6 @@ class IotRemoteDataSourceImpl implements IotRemoteDataSource {
   @override
   Future<List<IotDataModel>> getIotData(String iotUrl) async {
     try {
-      // No enviamos headers adicionales en GET para evitar CORS preflight
       final response = await httpClient.get(
         Uri.parse(iotUrl),
       ).timeout(const Duration(seconds: 10));

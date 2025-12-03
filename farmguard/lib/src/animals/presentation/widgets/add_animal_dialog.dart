@@ -416,15 +416,15 @@ class _AddAnimalDialogState extends State<AddAnimalDialog> {
                 TextFormField(
                   controller: _deviceIdController,
                   decoration: InputDecoration(
-                    labelText: 'Device ID *',
-                    hintText: 'ID del dispositivo IoT',
+                    labelText: 'Id de dispositivo *',
+                    hintText: 'Ingrese Id de dispositivo',
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'Por favor ingresa el Device ID';
+                      return 'Por favor ingrese el Id de dispositivo';
                     }
                     return null;
                   },

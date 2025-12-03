@@ -38,11 +38,14 @@ class AnimalsScreen extends StatelessWidget {
           telemetryService: TelemetrySignalRService(),
         );
         
-        // Cargar animales automáticamente
+        // 1. Cargar la lista de animales
         animalBloc.add(LoadAnimals(inventoryId));
         
-        // Conectar a telemetría en tiempo real
-        animalBloc.add(const ConnectTelemetry(filter: 'collar'));
+        // 2. Conectar a telemetría
+        // CAMBIO TEMPORAL: Usamos 'collar-001' explícitamente para probar tu vaca FORHONOR
+        // Si esto funciona, significa que el backend filtra estrictamente por ID.
+        debugPrint('Iniciando conexión con filtro de prueba: collar-001');
+        animalBloc.add(const ConnectTelemetry(filter: 'collar-001'));
         
         return animalBloc;
       },

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:signalr_netcore/signalr_client.dart';
 import '../../../../core/storage/token_storage.dart';
 
@@ -16,18 +17,41 @@ class TelemetryData {
   });
 
   factory TelemetryData.fromJson(Map<String, dynamic> json) {
+    // 1. Normalizar claves: Convertimos todas las claves del JSON a minúsculas
+    // para no preocuparnos si viene "DeviceId" o "device_id"
+    final Map<String, dynamic> data = {};
+    json.forEach((key, value) {
+      data[key.toLowerCase()] = value;
+    });
+
+    // 2. Función auxiliar para buscar múltiples variantes de una clave
+    dynamic getVal(List<String> keys) {
+      for (final key in keys) {
+        if (data.containsKey(key) && data[key] != null) {
+          return data[key];
+        }
+      }
+      return null;
+    }
+
+    // 3. Extraer valores usando la misma lógica defensiva que el código Vue
     return TelemetryData(
-      deviceId: json['device_id'] as String,
-      bpm: json['bpm'] as int,
-      temperature: (json['temperature'] as num).toDouble(),
-      location: json['location'] as String,
+      // Busca: device_id, deviceid, device, sensorid, sensor
+      deviceId: (getVal(['device_id', 'deviceid', 'device', 'sensorid', 'sensor', 'sensor_id']) ?? 'unknown').toString(),
+      
+      // Busca: bpm, heartrate, hr, heart_rate
+      bpm: int.tryParse(getVal(['bpm', 'heartrate', 'hr', 'heart_rate']).toString()) ?? 0,
+      
+      // Busca: temperature, temp, t
+      temperature: double.tryParse(getVal(['temperature', 'temp', 't']).toString()) ?? 0.0,
+      
+      // Busca: location, loc
+      location: (getVal(['location', 'loc']) ?? 'Unknown').toString(),
     );
   }
 
   @override
-  String toString() {
-    return 'TelemetryData(deviceId: $deviceId, bpm: $bpm, temp: $temperature, location: $location)';
-  }
+  String toString() => 'Telemetry: $deviceId | Temp: $temperature | BPM: $bpm';
 }
 
 class TelemetrySignalRService {
@@ -46,6 +70,7 @@ class TelemetrySignalRService {
 
     try {
       // URL completa sin /api/ ya que SignalR usa su propia ruta
+      // Nota: Asegúrate que esta URL sea accesible desde el dispositivo/emulador
       final hubUrl = 'https://www.ibrayan.dev/hubs/telemetry?filtro=$filter';
 
       // Obtener token de autenticación si existe
@@ -65,52 +90,78 @@ class TelemetrySignalRService {
           .build();
 
       // Registrar handlers de eventos de conexión
-      _hubConnection!.onclose(({error}) {});
-      _hubConnection!.onreconnecting(({error}) {});
-      _hubConnection!.onreconnected(({connectionId}) {});
+      _hubConnection!.onclose(({error}) => print('[SignalR] Conexión cerrada: $error'));
+      _hubConnection!.onreconnecting(({error}) => print('[SignalR] Reconectando...'));
+      _hubConnection!.onreconnected(({connectionId}) => print('[SignalR] Reconectado'));
 
-      // Registrar listener para recibir datos de telemetría
-      // Probar múltiples nombres de método que el servidor puede usar
-      _hubConnection!.on('ReceiveTelemetry', _handleTelemetryData);
-      _hubConnection!.on('TelemetryUpdate', _handleTelemetryData);
-      _hubConnection!.on('telemetry', _handleTelemetryData);
-      _hubConnection!.on('SendTelemetry', _handleTelemetryData);
-      _hubConnection!.on('UpdateTelemetry', _handleTelemetryData);
-      _hubConnection!.on('NewTelemetry', _handleTelemetryData);
+      // Registrar handlers para múltiples nombres de eventos
+      // Esto cubre todas las posibilidades que vimos en el código de Vue
+      final eventNames = [
+        'ReceiveTelemetry',
+        'Telemetry',            // Común en SignalR
+        'BroadcastTelemetry',   // Común para broadcast
+        'telemetry',
+        'SendTelemetry',
+        'UpdateTelemetry',
+        'NewTelemetry'
+      ];
+
+      for (var name in eventNames) {
+        _hubConnection!.on(name, _handleTelemetryData);
+      }
 
       // Iniciar conexión
+      print('[SignalR] Intentando conectar a $hubUrl');
       await _hubConnection!.start();
+      print('[SignalR] Conectado exitosamente');
       
     } catch (e) {
-      print('[SIGNALR ERROR] Failed to connect: $e');
-      rethrow;
+      print('[SignalR ERROR] Failed to connect: $e');
+      // No relanzamos para no romper la app si falla la telemetría, 
+      // pero podrías hacerlo si es crítica.
     }
   }
 
   void _handleTelemetryData(List<Object?>? arguments) {
     try {
-      if (arguments == null || arguments.isEmpty) {
-        return;
+      if (arguments == null || arguments.isEmpty) return;
+
+      print("[SignalR] Data cruda recibida: $arguments");
+
+      var rawData = arguments[0];
+      Map<String, dynamic>? jsonData;
+
+      // CASO 1: La data llega como un String JSON (común en algunas configuraciones de SignalR)
+      if (rawData is String) {
+        try {
+          jsonData = jsonDecode(rawData);
+        } catch (e) {
+          print("[SignalR] Error decodificando string JSON: $e");
+        }
+      } 
+      // CASO 2: La data llega ya como Objeto/Mapa
+      else if (rawData is Map) {
+        jsonData = Map<String, dynamic>.from(rawData);
       }
 
-      // El servidor puede enviar el objeto directamente o como primer argumento
-      final data = arguments[0];
-      
-      Map<String, dynamic>? jsonData;
-      
-      // Intentar diferentes formatos
-      if (data is Map<String, dynamic>) {
-        jsonData = data;
-      } else if (data is Map) {
-        // Convertir Map genérico a Map<String, dynamic>
-        jsonData = Map<String, dynamic>.from(data);
-      }
-      
       if (jsonData != null) {
+        // Verificar si el JSON tiene una propiedad raíz que envuelve la data (unwrap)
+        // Ejemplo: { "telemetry": { "temp": 30... } }
+        if (jsonData.keys.length == 1 && jsonData.values.first is Map) {
+          print("[SignalR] Desempaquetando objeto anidado...");
+          jsonData = Map<String, dynamic>.from(jsonData.values.first as Map);
+        }
+
         final telemetry = TelemetryData.fromJson(jsonData);
+        print("[SignalR] Procesado con éxito: $telemetry");
         _telemetryController.add(telemetry);
+      } else {
+        print("[SignalR] No se pudo interpretar la data como Mapa ni como String JSON");
       }
-    } catch (e) {
+    } catch (e, stack) {
+      // IMPORTANTE: Imprimir el error para que no sea silencioso
+      print("[SignalR Error] Parsing failed: $e");
+      print(stack);
     }
   }
 
@@ -121,6 +172,7 @@ class TelemetrySignalRService {
         _hubConnection = null;
       }
     } catch (e) {
+      print('[SignalR] Error al desconectar: $e');
     }
   }
 

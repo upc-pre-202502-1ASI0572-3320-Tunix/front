@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart'; // Para debugPrint
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../domain/entities/animal.dart';
 import '../../domain/usecases/get_animals_by_inventory.dart';
@@ -28,16 +29,19 @@ class AnimalBloc extends Bloc<AnimalEvent, AnimalState> {
     Emitter<AnimalState> emit,
   ) async {
     emit(AnimalLoading());
-
     final result = await getAnimalsByInventory(event.inventoryId);
-
     result.fold(
       (failure) => emit(AnimalError(failure.message)),
       (animals) {
+        debugPrint('[AnimalBloc] Animales cargados: ${animals.length}');
+        // Imprimir los deviceId/urlIot que tenemos en memoria para verificar
+        for (var a in animals) {
+          debugPrint('   Animal: ${a.name} | DeviceID(urlIot): "${a.deviceId}"');
+        }
+        
         if (animals.isEmpty) {
           emit(const AnimalLoaded(animals: []));
         } else {
-          // Seleccionar el primer animal por defecto
           emit(AnimalLoaded(
             animals: animals,
             selectedAnimal: animals.first,
@@ -53,10 +57,14 @@ class AnimalBloc extends Bloc<AnimalEvent, AnimalState> {
   ) {
     if (state is AnimalLoaded) {
       final currentState = state as AnimalLoaded;
-      final selectedAnimal = currentState.filteredAnimals.firstWhere(
-        (animal) => animal.id == event.animalId,
-      );
-      emit(currentState.copyWith(selectedAnimal: selectedAnimal));
+      try {
+        final selectedAnimal = currentState.filteredAnimals.firstWhere(
+          (animal) => animal.id == event.animalId,
+        );
+        emit(currentState.copyWith(selectedAnimal: selectedAnimal));
+      } catch (e) {
+        debugPrint('[AnimalBloc] Error seleccionando animal: $e');
+      }
     }
   }
 
@@ -66,17 +74,14 @@ class AnimalBloc extends Bloc<AnimalEvent, AnimalState> {
   ) {
     if (state is AnimalLoaded) {
       final currentState = state as AnimalLoaded;
-      
       List<Animal> filtered = currentState.animals;
       
-      // Aplicar filtro de búsqueda (mínimo 3 caracteres)
       if (event.searchQuery != null && event.searchQuery!.length >= 3) {
         filtered = filtered.where((animal) {
           return animal.name.toLowerCase().contains(event.searchQuery!.toLowerCase());
         }).toList();
       }
       
-      // Aplicar filtro de especie
       if (event.specieFilter != null && event.specieFilter!.isNotEmpty) {
         filtered = filtered.where((animal) {
           return animal.specie == event.specieFilter;
@@ -97,12 +102,12 @@ class AnimalBloc extends Bloc<AnimalEvent, AnimalState> {
     Emitter<AnimalState> emit,
   ) async {
     try {
-      // Conectar al hub de telemetría
+      debugPrint('[AnimalBloc] Conectando a SignalR con filtro: "${event.filter}"');
       await telemetryService.connect(filter: event.filter);
 
-      // Escuchar datos de telemetría entrantes
+      _telemetrySubscription?.cancel();
       _telemetrySubscription = telemetryService.telemetryStream.listen((telemetryData) {
-        // Emitir evento con los datos recibidos
+        debugPrint('[AnimalBloc] STREAM RECIBIDO: $telemetryData');
         add(TelemetryDataReceived(
           deviceId: telemetryData.deviceId,
           bpm: telemetryData.bpm,
@@ -110,8 +115,8 @@ class AnimalBloc extends Bloc<AnimalEvent, AnimalState> {
           location: telemetryData.location,
         ));
       });
-
     } catch (e) {
+      debugPrint('[AnimalBloc] Error crítico en conexión SignalR: $e');
     }
   }
 
@@ -128,55 +133,47 @@ class AnimalBloc extends Bloc<AnimalEvent, AnimalState> {
     TelemetryDataReceived event,
     Emitter<AnimalState> emit,
   ) {
+    debugPrint(' [AnimalBloc] Procesando actualización para DeviceID: "${event.deviceId}"');
+    
     if (state is AnimalLoaded) {
       final currentState = state as AnimalLoaded;
 
-      // Buscar el animal por deviceId
-      final animalIndex = currentState.animals.indexWhere(
-        (animal) => animal.deviceId == event.deviceId,
+      // Buscamos ignorando mayúsculas/minúsculas y espacios
+      final index = currentState.animals.indexWhere((a) => 
+        a.deviceId.trim().toLowerCase() == event.deviceId.trim().toLowerCase()
       );
 
-      if (animalIndex == -1) {
-        return;
-      }
-
-      final targetAnimal = currentState.animals[animalIndex];
-
-      // Actualizar el animal con los datos de telemetría
-      final updatedAnimals = List<Animal>.from(currentState.animals);
-      updatedAnimals[animalIndex] = targetAnimal.copyWith(
-        hearRate: event.bpm,
-        temperature: event.temperature,
-        location: event.location,
-      );
-
-      // Actualizar el animal en la lista filtrada
-      final updatedFilteredAnimals = currentState.filteredAnimals.map((animal) {
-        if (animal.deviceId == event.deviceId) {
-          return animal.copyWith(
-            hearRate: event.bpm,
-            temperature: event.temperature,
-            location: event.location,
-          );
-        }
-        return animal;
-      }).toList();
-
-      // Actualizar el animal seleccionado si corresponde
-      Animal? updatedSelectedAnimal = currentState.selectedAnimal;
-      if (updatedSelectedAnimal != null && updatedSelectedAnimal.deviceId == event.deviceId) {
-        updatedSelectedAnimal = updatedSelectedAnimal.copyWith(
+      if (index != -1) {
+        debugPrint('   Animal encontrado: ${currentState.animals[index].name}. Actualizando UI...');
+        
+        final targetAnimal = currentState.animals[index];
+        final updatedAnimal = targetAnimal.copyWith(
           hearRate: event.bpm,
           temperature: event.temperature,
           location: event.location,
         );
-      }
 
-      emit(currentState.copyWith(
-        animals: updatedAnimals,
-        filteredAnimals: updatedFilteredAnimals,
-        selectedAnimal: updatedSelectedAnimal,
-      ));
+        final updatedAnimals = List<Animal>.from(currentState.animals);
+        updatedAnimals[index] = updatedAnimal;
+
+        // Actualizar listas filtradas y selección
+        final updatedFiltered = currentState.filteredAnimals.map((a) => 
+          a.id == updatedAnimal.id ? updatedAnimal : a
+        ).toList();
+
+        final updatedSelected = currentState.selectedAnimal?.id == updatedAnimal.id 
+            ? updatedAnimal 
+            : currentState.selectedAnimal;
+
+        emit(currentState.copyWith(
+          animals: updatedAnimals,
+          filteredAnimals: updatedFiltered,
+          selectedAnimal: updatedSelected,
+        ));
+      } else {
+        debugPrint('   No se encontró ningún animal con DeviceID "${event.deviceId}" en la lista cargada.');
+        debugPrint('   IDs disponibles: ${currentState.animals.map((a) => a.deviceId).toList()}');
+      }
     }
   }
 
