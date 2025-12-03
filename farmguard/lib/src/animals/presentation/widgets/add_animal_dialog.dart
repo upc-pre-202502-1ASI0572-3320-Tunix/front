@@ -7,9 +7,11 @@ import 'dart:typed_data';
 
 import '../../../../core/config/app_config.dart';
 import '../../../../core/storage/token_storage.dart';
+import '../../../../core/network/api_client.dart';
 import '../../../shared/widgets/custom_snackbar.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../auth/presentation/bloc/auth_state.dart';
+import '../../domain/entities/animal.dart';
 import '../bloc/animal_bloc.dart';
 import '../bloc/animal_event.dart';
 
@@ -17,10 +19,12 @@ import '../bloc/animal_event.dart';
 
 class AddAnimalDialog extends StatefulWidget {
   final AnimalBloc animalBloc;
-  
+  final Animal? animalToEdit;
+
   const AddAnimalDialog({
     super.key,
     required this.animalBloc,
+    this.animalToEdit,
   });
 
   @override
@@ -60,6 +64,24 @@ class _AddAnimalDialogState extends State<AddAnimalDialog> {
     _temperatureController.dispose();
     _birthDateController.dispose();
     super.dispose();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    // Si nos pasan un animal, prellenamos los campos para edición
+    final a = widget.animalToEdit;
+    if (a != null) {
+      _nameController.text = a.name;
+      _deviceIdController.text = a.deviceId;
+      _locationController.text = a.location;
+      _hearRateController.text = a.hearRate.toString();
+      _temperatureController.text = a.temperature.toString();
+      _birthDateController.text = '${a.birthDate.day.toString().padLeft(2, '0')}/${a.birthDate.month.toString().padLeft(2, '0')}/${a.birthDate.year}';
+      // intentar parsear especie y sexo si aplica
+      _selectedSpecie = int.tryParse(a.specie) ?? 0;
+      _sex = a.sex;
+    }
   }
 
   //
@@ -138,23 +160,74 @@ class _AddAnimalDialogState extends State<AddAnimalDialog> {
       // Obtener el token de autenticación
       final token = await TokenStorage.getToken();
       
-      // Crear multipart request
-      final uri = Uri.parse('${AppConfig.baseUrl}/animals/$inventoryId');
-      final request = http.MultipartRequest('POST', uri);
-      
-      // Agregar headers
-      request.headers['Content-Type'] = 'multipart/form-data';
+      // Si estamos en modo edición y NO se seleccionó nueva imagen,
+      // algunos backends requieren JSON en lugar de multipart (sin file).
+      final bool isEditing = widget.animalToEdit != null;
+      final bool hasNewImage = _selectedImageBytes != null && _selectedImageName != null;
+
+      // Campos comunes
+      final birthDate = _parseBirthDate(_birthDateController.text);
+      final String? birthDateIso = birthDate != null ? birthDate.toUtc().toIso8601String() : null;
+
+      if (isEditing && !hasNewImage) {
+        // Enviar JSON PUT usando ApiClient (no multipart)
+        final api = ApiClient();
+        final body = <String, dynamic>{
+          'name': _nameController.text,
+          'specie': _selectedSpecie.toString(),
+          'urlIot': _deviceIdController.text,
+          'location': _locationController.text,
+          'hearRate': _hearRateController.text.isEmpty ? 70 : int.tryParse(_hearRateController.text) ?? 70,
+          'temperature': _temperatureController.text.isEmpty ? 38 : double.tryParse(_temperatureController.text) ?? 38,
+          'sex': _sex,
+          'urlPhoto': widget.animalToEdit!.urlPhoto,
+        };
+        if (birthDateIso != null) body['birthDate'] = birthDateIso;
+
+        // Llamada PUT JSON
+        final resp = await api.put('/animals/${widget.animalToEdit!.idAnimal}', data: body);
+        if (resp.statusCode != null && resp.statusCode! >= 200 && resp.statusCode! < 300) {
+          // Éxito
+          widget.animalBloc.add(LoadAnimals(inventoryId));
+          await Future.delayed(const Duration(milliseconds: 500));
+          if (mounted) {
+            Navigator.of(context).pop();
+            CustomSnackbar.showSuccess(context, 'Animal actualizado correctamente');
+          }
+        } else {
+          if (mounted) {
+            CustomSnackbar.showError(context, 'Error (${resp.statusCode}): ${resp.data}');
+          }
+        }
+        // Salir del método
+        setState(() { _isLoading = false; });
+        return;
+      }
+
+      // Si llegamos aquí, usaremos multipart (creación o edición con nueva imagen)
+      // Crear multipart request.
+      late final Uri uri;
+      late final http.MultipartRequest request;
+      if (!isEditing) {
+        uri = Uri.parse('${AppConfig.baseUrl}/animals/$inventoryId');
+        request = http.MultipartRequest('POST', uri);
+      } else {
+        uri = Uri.parse('${AppConfig.baseUrl}/animals/${widget.animalToEdit!.idAnimal}');
+        request = http.MultipartRequest('PUT', uri);
+      }
+
+      // Agregar headers (NO establecer Content-Type manualmente, MultipartRequest lo agrega con boundary)
       if (token != null) {
         request.headers['Authorization'] = 'Bearer $token';
       }
-      
+
       // Agregar campos de texto
       request.fields['name'] = _nameController.text;
       request.fields['specie'] = _selectedSpecie.toString();
       // Backend aún requiere urlIot, enviamos el deviceId como urlIot
       request.fields['urlIot'] = _deviceIdController.text;
       request.fields['location'] = _locationController.text;
-      
+
       // Usar valores por defecto si los campos están vacíos (se actualizarán desde IoT)
       request.fields['hearRate'] = _hearRateController.text.isEmpty 
           ? '70' // Valor por defecto
@@ -162,13 +235,11 @@ class _AddAnimalDialogState extends State<AddAnimalDialog> {
       request.fields['temperature'] = _temperatureController.text.isEmpty 
           ? '38' // Valor por defecto
           : _temperatureController.text;
-          
+
       request.fields['sex'] = _sex.toString();
-      
-      // Parsear y convertir birthDate a formato ISO 8601
-      final birthDate = _parseBirthDate(_birthDateController.text);
-      if (birthDate != null) {
-        request.fields['birthDate'] = birthDate.toUtc().toIso8601String();
+
+      if (birthDateIso != null) {
+        request.fields['birthDate'] = birthDateIso;
       }
       
       // Agregar imagen si fue seleccionada
@@ -182,12 +253,41 @@ class _AddAnimalDialogState extends State<AddAnimalDialog> {
             filename: _selectedImageName!,
           ),
         );
+      } else {
+        // Si estamos en modo edición y NO se seleccionó nueva imagen,
+        // algunos backends validan que exista el campo 'file' incluso
+        // cuando no se quiere cambiar la imagen. Intentaremos descargar
+        // la imagen existente y adjuntarla como archivo; si falla, enviaremos
+        // la URL en 'urlPhoto' como fallback.
+        if (widget.animalToEdit != null && widget.animalToEdit!.urlPhoto.isNotEmpty) {
+          try {
+            final imgUri = Uri.parse(widget.animalToEdit!.urlPhoto);
+            final imgResp = await http.get(imgUri);
+            if (imgResp.statusCode == 200 && imgResp.bodyBytes.isNotEmpty) {
+              // Intentar obtener un nombre de archivo razonable
+              final filename = widget.animalToEdit!.idAnimal + '.jpg';
+              request.files.add(
+                http.MultipartFile.fromBytes(
+                  'file',
+                  imgResp.bodyBytes,
+                  filename: filename,
+                ),
+              );
+            } else {
+              // Fallback a enviar la URL
+              request.fields['urlPhoto'] = widget.animalToEdit!.urlPhoto;
+            }
+          } catch (e) {
+            // Si falla la descarga, simplemente enviamos la URL
+            request.fields['urlPhoto'] = widget.animalToEdit!.urlPhoto;
+          }
+        }
       }
       
       // Enviar request
       final streamedResponse = await request.send();
       final response = await http.Response.fromStream(streamedResponse);
-      
+
       if (response.statusCode >= 200 && response.statusCode < 300) {
         // Recargar lista de animales usando el bloc recibido como parámetro
         widget.animalBloc.add(LoadAnimals(inventoryId));
@@ -197,7 +297,10 @@ class _AddAnimalDialogState extends State<AddAnimalDialog> {
         
         if (mounted) {
           Navigator.of(context).pop();
-          CustomSnackbar.showSuccess(context, 'Animal agregado correctamente');
+          CustomSnackbar.showSuccess(
+            context,
+            widget.animalToEdit == null ? 'Animal agregado correctamente' : 'Animal actualizado correctamente',
+          );
         }
       } else {
         // Mostrar el error específico del backend
@@ -230,7 +333,7 @@ class _AddAnimalDialogState extends State<AddAnimalDialog> {
     return AlertDialog(
       title: Row(
         children: [
-          const Text('Agregar Nuevo Animal'),
+          Text(widget.animalToEdit == null ? 'Agregar Nuevo Animal' : 'Editar Animal'),
           const Spacer(),
           IconButton(
             onPressed: () => Navigator.of(context).pop(),
@@ -449,50 +552,81 @@ class _AddAnimalDialogState extends State<AddAnimalDialog> {
                     ),
                     // Esta lógica de UI ya era correcta
                     child: _selectedImageBytes != null
-                        ? Stack(
-                            children: [
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(12),
-                                child: const Center(
+                            ? Stack(
+                                children: [
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(12),
+                                    child: Image.memory(
+                                      _selectedImageBytes!,
+                                      width: double.infinity,
+                                      height: double.infinity,
+                                      fit: BoxFit.cover,
+                                    ),
+                                  ),
+                                  Positioned(
+                                    top: 8,
+                                    right: 8,
+                                    child: IconButton(
+                                      onPressed: () {
+                                        setState(() {
+                                          _selectedImageBytes = null;
+                                          _selectedImageName = null;
+                                        });
+                                      },
+                                      icon: const Icon(Icons.close),
+                                      style: IconButton.styleFrom(
+                                        backgroundColor: Colors.white,
+                                        padding: const EdgeInsets.all(4),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              )
+                            : (widget.animalToEdit != null && widget.animalToEdit!.urlPhoto.isNotEmpty)
+                              ? Stack(
+                                  children: [
+                                    ClipRRect(
+                                      borderRadius: BorderRadius.circular(12),
+                                      child: Image.network(
+                                        widget.animalToEdit!.urlPhoto,
+                                        width: double.infinity,
+                                        height: double.infinity,
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (c, e, s) => const Center(child: Icon(Icons.broken_image)),
+                                      ),
+                                    ),
+                                    Positioned(
+                                      top: 8,
+                                      right: 8,
+                                      child: IconButton(
+                                        onPressed: () {
+                                          // Quitar la imagen existente para que el usuario pueda subir otra
+                                          setState(() {
+                                            // marcar como explícitamente removida
+                                            _selectedImageBytes = null;
+                                            _selectedImageName = null;
+                                            // si se quiere indicar eliminación al backend, podríamos añadir un flag
+                                          });
+                                        },
+                                        icon: const Icon(Icons.close),
+                                        style: IconButton.styleFrom(
+                                          backgroundColor: Colors.white,
+                                          padding: const EdgeInsets.all(4),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                )
+                              : const Center(
                                   child: Column(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
-                                      Icon(Icons.check_circle, size: 48, color: Colors.green),
+                                      Icon(Icons.add_photo_alternate, size: 48, color: Colors.grey),
                                       SizedBox(height: 8),
-                                      Text('Imagen seleccionada'),
+                                      Text('Toca para seleccionar una imagen'),
                                     ],
                                   ),
                                 ),
-                              ),
-                              Positioned(
-                                top: 8,
-                                right: 8,
-                                child: IconButton(
-                                  onPressed: () {
-                                    setState(() {
-                                      _selectedImageBytes = null;
-                                      _selectedImageName = null;
-                                    });
-                                  },
-                                  icon: const Icon(Icons.close),
-                                  style: IconButton.styleFrom(
-                                    backgroundColor: Colors.white,
-                                    padding: const EdgeInsets.all(4),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          )
-                        : const Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.add_photo_alternate, size: 48, color: Colors.grey),
-                                SizedBox(height: 8),
-                                Text('Toca para seleccionar una imagen'),
-                              ],
-                            ),
-                          ),
                   ),
                 ),
               ],

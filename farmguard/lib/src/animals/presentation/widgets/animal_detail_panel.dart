@@ -10,6 +10,7 @@ import '../../../auth/presentation/bloc/auth_state.dart';
 import '../../domain/entities/animal.dart';
 import '../bloc/animal_bloc.dart';
 import '../bloc/animal_event.dart';
+import 'add_animal_dialog.dart';
 
 class AnimalDetailPanel extends StatefulWidget {
   final Animal animal;
@@ -251,7 +252,13 @@ class _AnimalDetailPanelState extends State<AnimalDetailPanel> {
                       Expanded(
                         child: OutlinedButton(
                           onPressed: () {
-                            // Implementar edición de animal
+                            showDialog(
+                              context: context,
+                              builder: (dialogContext) => AddAnimalDialog(
+                                animalBloc: context.read<AnimalBloc>(),
+                                animalToEdit: widget.animal,
+                              ),
+                            );
                           },
                           style: OutlinedButton.styleFrom(
                             foregroundColor: AppColors.primary,
