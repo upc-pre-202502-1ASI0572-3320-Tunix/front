@@ -41,7 +41,6 @@ class TelemetrySignalRService {
 
   Future<void> connect({String filter = 'collar'}) async {
     if (_hubConnection != null && isConnected) {
-      print('[SIGNALR] Already connected');
       return;
     }
 
